@@ -16,4 +16,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Vulkan::Vulkan
 )
 
-target_sources(${PROJECT_NAME} PRIVATE src/main.cpp)
+target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
+
+target_sources(${PROJECT_NAME} PRIVATE 
+    "src/main.cpp"
+    "src/app.cpp"
+)
