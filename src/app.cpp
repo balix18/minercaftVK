@@ -29,6 +29,20 @@ void App::initVK()
 
 void App::createInstance()
 {
+#ifdef _DEBUG
+	bool enableValidationLayers = true;
+#else
+	bool enableValidationLayers = false;
+#endif
+
+	std::vector<std::string> validationLayers = {
+		"VK_LAYER_KHRONOS_validation"
+	};
+
+	if (enableValidationLayers && !checkValidationLayerSupport(validationLayers)) {
+		throw std::runtime_error("validation layers requested, but not available!");
+	}
+
 	vk::ApplicationInfo appInfo{};
 	appInfo.pApplicationName = "minercaftVK";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -49,21 +63,34 @@ void App::createInstance()
 
 	createInfo.enabledExtensionCount = glfwExtensionCount;
 	createInfo.ppEnabledExtensionNames = glfwExtensions;
-	createInfo.enabledLayerCount = 0;
+
+	auto ConvertToCStrVector = [](std::vector<std::string> const& input)
+	{
+		std::vector<const char*> output(input.size());
+		std::transform(input.begin(), input.end(), output.begin(), [](std::string const& p) {
+			return p.c_str();
+		});
+		return output;
+	};
+
+	auto rawValidationLayers = ConvertToCStrVector(validationLayers);
+	if (enableValidationLayers) {
+		createInfo.enabledLayerCount = static_cast<uint32_t>(rawValidationLayers.size());
+		createInfo.ppEnabledLayerNames = rawValidationLayers.data();
+	}
+	else {
+		createInfo.enabledLayerCount = 0;
+	}
 
 	vk::Result result = vk::createInstance(&createInfo, nullptr, &instance);
 	if (result != vk::Result::eSuccess) {
 		throw std::runtime_error("failed to create instance!");
 	}
 
-	const char* layerName = nullptr;
-	uint32_t extensionCount = 0;
-	vk::enumerateInstanceExtensionProperties(layerName, &extensionCount, nullptr);
+	vk::Optional<const std::string> layerName(nullptr);
+	auto extensions = vk::enumerateInstanceExtensionProperties(layerName);
 
-	std::vector<vk::ExtensionProperties> extensions(extensionCount);
-	vk::enumerateInstanceExtensionProperties(layerName, &extensionCount, extensions.data());
-
-	fmt::print("avaliable extensions:");
+	fmt::print("avaliable extensions:\n");
 	for (auto const& ext : extensions) {
 		fmt::print("  - {}\n", ext.extensionName);
 	}
@@ -76,6 +103,22 @@ void App::createInstance()
 			throw std::runtime_error(fmt::format("glfw required extension missing: ", glfwExt));
 		}
 	}
+}
+
+bool App::checkValidationLayerSupport(std::vector<std::string> const& validationLayers)
+{
+	auto availableLayers = vk::enumerateInstanceLayerProperties();
+
+	for (auto const& layer : validationLayers) {
+		auto resIt = std::find_if(availableLayers.begin(), availableLayers.end(), [&](vk::LayerProperties const& p) {
+			return p.layerName == layer;
+		});
+		if (resIt == availableLayers.end()) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void App::mainLoop()

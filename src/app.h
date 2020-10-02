@@ -20,6 +20,7 @@ private:
 	void initWindow();
 	void initVK();
 	void createInstance();
+	bool checkValidationLayerSupport(std::vector<std::string> const& validationLayers);
 	void mainLoop();
 	void cleanup();
 };
