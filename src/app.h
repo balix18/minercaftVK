@@ -15,8 +15,11 @@ struct App
 	void run();
 
 private:
+	vk::Instance instance;
+
 	void initWindow();
 	void initVK();
+	void createInstance();
 	void mainLoop();
 	void cleanup();
 };
