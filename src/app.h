@@ -3,6 +3,7 @@
 struct QueueFamilyIndices
 {
 	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
 
 	bool isComplete();
 };
@@ -28,6 +29,7 @@ private:
 	vk::PhysicalDevice physicalDevice;
 	vk::Device device;
 	vk::Queue graphicsQueue;
+	vk::Queue presentQueue;
 	vk::SurfaceKHR surface;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 

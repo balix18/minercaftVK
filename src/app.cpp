@@ -210,14 +210,23 @@ QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
 {
 	QueueFamilyIndices indices;
 
-	int count = 0;
+	int idx = 0;
 	auto queueFamilies = device.getQueueFamilyProperties();
 	for (auto const& queueFamily : queueFamilies) {
 		if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-			indices.graphicsFamily = count;
+			indices.graphicsFamily = idx;
+		}
+
+		auto presentSupport = device.getSurfaceSupportKHR(idx, surface);
+		if (presentSupport) {
+			indices.presentFamily = idx;
+		}
+
+		if (indices.isComplete()) {
 			break;
 		}
-		count++;
+
+		idx++;
 	}
 
 	return indices;
@@ -226,6 +235,10 @@ QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
 void App::createLogicalDevice()
 {
 	auto familyIndices = findQueueFamilies(physicalDevice);
+
+	if (familyIndices.graphicsFamily != familyIndices.presentFamily) {
+		std::runtime_error("multiple queues needed, this is unoptimal");
+	}
 
 	vk::DeviceQueueCreateInfo queueCreateInfo{};
 	queueCreateInfo.queueFamilyIndex = familyIndices.graphicsFamily.value();
@@ -243,8 +256,9 @@ void App::createLogicalDevice()
 
 	device = physicalDevice.createDevice(createInfo);
 
-	auto graphicsQueueIndex = 0;
-	graphicsQueue = device.getQueue(familyIndices.graphicsFamily.value(), graphicsQueueIndex);
+	auto queueIndex = 0;
+	graphicsQueue = device.getQueue(familyIndices.graphicsFamily.value(), queueIndex);
+	presentQueue = device.getQueue(familyIndices.presentFamily.value(), queueIndex);
 }
 
 void App::mainLoop()
@@ -279,5 +293,6 @@ void App::GLFWwindowDeleter::operator()(GLFWwindow* ptr)
 
 bool QueueFamilyIndices::isComplete()
 {
-	return graphicsFamily.has_value();
+	return graphicsFamily.has_value()
+		&& presentFamily.has_value();
 }
