@@ -36,13 +36,17 @@ private:
 	vk::DebugUtilsMessengerEXT debugMessenger;
 	bool enableValidationLayers;
 
+	std::vector<const char*> validationLayers;
+	std::vector<const char*> deviceExtensions;
+
 	void initWindow();
 	void initVK();
 	void createInstance();
 	void setupDebugMessenger();
 	void createSurface();
 	std::vector<const char*> getRequiredExtensions();
-	bool checkValidationLayerSupport(std::vector<std::string> const& validationLayers);
+	bool checkValidationLayerSupport(std::vector<const char*> const& validationLayers);
+	bool checkDeviceExtensionSupport(vk::PhysicalDevice const& device, std::vector<const char*> const& deviceExtensions);
 	void pickPhysicalDevice();
 	bool isDeviceSuitable(vk::PhysicalDevice const& device);
 	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& device);

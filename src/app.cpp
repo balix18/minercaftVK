@@ -22,6 +22,17 @@ App::App(int width, int height) :
 	debugMessenger{ nullptr },
 	enableValidationLayers{ false }
 {
+	validationLayers = {
+		"VK_LAYER_KHRONOS_validation",
+	};
+
+	deviceExtensions = {
+		"VK_KHR_swapchain"
+	};
+
+#ifdef _DEBUG
+	enableValidationLayers = true;
+#endif
 }
 
 void App::run()
@@ -51,14 +62,6 @@ void App::initVK()
 
 void App::createInstance()
 {
-#ifdef _DEBUG
-	enableValidationLayers = true;
-#endif
-
-	std::vector<std::string> validationLayers = {
-		"VK_LAYER_KHRONOS_validation"
-	};
-
 	if (enableValidationLayers && !checkValidationLayerSupport(validationLayers)) {
 		throw std::runtime_error("validation layers requested, but not available!");
 	}
@@ -77,19 +80,9 @@ void App::createInstance()
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(reqExtensions.size());
 	createInfo.ppEnabledExtensionNames = reqExtensions.data();
 
-	auto ConvertToCStrVector = [](std::vector<std::string> const& input)
-	{
-		std::vector<const char*> output(input.size());
-		std::transform(input.begin(), input.end(), output.begin(), [](std::string const& p) {
-			return p.c_str();
-		});
-		return output;
-	};
-
-	auto rawValidationLayers = ConvertToCStrVector(validationLayers);
 	if (enableValidationLayers) {
-		createInfo.enabledLayerCount = static_cast<uint32_t>(rawValidationLayers.size());
-		createInfo.ppEnabledLayerNames = rawValidationLayers.data();
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
 	}
 	else {
 		createInfo.enabledLayerCount = 0;
@@ -99,8 +92,7 @@ void App::createInstance()
 
 	dispatcher = std::make_unique<vk::DispatchLoaderDynamic>(instance, vkGetInstanceProcAddr);
 
-	vk::Optional<const std::string> layerName(nullptr);
-	auto extensionProps = vk::enumerateInstanceExtensionProperties(layerName);
+	auto extensionProps = vk::enumerateInstanceExtensionProperties();
 
 	fmt::print("avaliable extensions:\n");
 	for (auto const& extensionProp : extensionProps) {
@@ -110,7 +102,7 @@ void App::createInstance()
 	// check if all required extensions are available
 	for (auto const& ext : reqExtensions) {
 		auto resIt = std::find_if(extensionProps.begin(), extensionProps.end(), [&](vk::ExtensionProperties const& p) { 
-			return std::strcmp(p.extensionName, ext) == 0; 
+			return !!std::strcmp(p.extensionName, ext); 
 		});
 		if (resIt == extensionProps.end()) {
 			throw std::runtime_error(fmt::format("required extension missing: ", ext));
@@ -160,13 +152,13 @@ std::vector<const char*> App::getRequiredExtensions()
 	return extensions;
 }
 
-bool App::checkValidationLayerSupport(std::vector<std::string> const& validationLayers)
+bool App::checkValidationLayerSupport(std::vector<const char*> const& validationLayers)
 {
 	auto availableLayers = vk::enumerateInstanceLayerProperties();
 
 	for (auto const& layer : validationLayers) {
 		auto resIt = std::find_if(availableLayers.begin(), availableLayers.end(), [&](vk::LayerProperties const& p) {
-			return p.layerName == layer;
+			return !!std::strcmp(p.layerName, layer);
 		});
 		if (resIt == availableLayers.end()) {
 			return false;
@@ -174,6 +166,25 @@ bool App::checkValidationLayerSupport(std::vector<std::string> const& validation
 	}
 
 	return true;
+}
+
+bool App::checkDeviceExtensionSupport(vk::PhysicalDevice const& device, std::vector<const char*> const& deviceExtensions)
+{
+	auto availableExtensions = device.enumerateDeviceExtensionProperties();
+
+	std::vector<std::string> tmp;
+	std::set<const char*> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+	for (auto const& ext : availableExtensions) {
+		tmp.push_back(std::string{ ext.extensionName });
+		auto resIt = std::find_if(requiredExtensions.begin(), requiredExtensions.end(), [&](const char* p) {
+			return !!std::strcmp(ext.extensionName, p);
+		});
+		if (resIt != requiredExtensions.end()) {
+			requiredExtensions.erase(resIt);
+		}
+	}
+
+	return requiredExtensions.empty();
 }
 
 void App::pickPhysicalDevice()
@@ -200,10 +211,12 @@ bool App::isDeviceSuitable(vk::PhysicalDevice const& device)
 	auto deviceProps = device.getProperties();
 	auto deviceFeatures = device.getFeatures();
 	auto indices = findQueueFamilies(device);
+	auto extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
 
 	return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
 		&& deviceFeatures.geometryShader
-		&& indices.isComplete();
+		&& indices.isComplete()
+		&& extensionsSupported;
 }
 
 QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
@@ -252,7 +265,8 @@ void App::createLogicalDevice()
 	createInfo.pQueueCreateInfos = &queueCreateInfo;
 	createInfo.queueCreateInfoCount = 1;
 	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = 0;
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
 	device = physicalDevice.createDevice(createInfo);
 
