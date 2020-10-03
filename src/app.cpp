@@ -14,6 +14,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 App::App(int width, int height) : 
 	width{ width },
 	height{ height },
+	instance{ nullptr },
+	physicalDevice{ nullptr },
+	device{ nullptr },
+	graphicsQueue{ nullptr },
+	dispatcher{ nullptr },
+	debugMessenger{ nullptr },
 	enableValidationLayers{ false }
 {
 }
@@ -39,6 +45,7 @@ void App::initVK()
 	createInstance();
 	setupDebugMessenger();
 	pickPhysicalDevice();
+	createLogicalDevice();
 }
 
 void App::createInstance()
@@ -87,10 +94,7 @@ void App::createInstance()
 		createInfo.enabledLayerCount = 0;
 	}
 
-	vk::Result result = vk::createInstance(&createInfo, nullptr, &instance);
-	if (result != vk::Result::eSuccess) {
-		throw std::runtime_error("failed to create instance!");
-	}
+	instance = vk::createInstance(createInfo);
 
 	dispatcher = std::make_unique<vk::DispatchLoaderDynamic>(instance, vkGetInstanceProcAddr);
 
@@ -162,7 +166,6 @@ bool App::checkValidationLayerSupport(std::vector<std::string> const& validation
 
 void App::pickPhysicalDevice()
 {
-	vk::PhysicalDevice physicalDevice = nullptr;
 	auto physicalDevices = instance.enumeratePhysicalDevices();
 
 	for (auto const& device : physicalDevices) {
@@ -208,6 +211,30 @@ QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
 	return indices;
 }
 
+void App::createLogicalDevice()
+{
+	auto familyIndices = findQueueFamilies(physicalDevice);
+
+	vk::DeviceQueueCreateInfo queueCreateInfo{};
+	queueCreateInfo.queueFamilyIndex = familyIndices.graphicsFamily.value();
+	queueCreateInfo.queueCount = 1;
+	auto queuePriority = 1.0f;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+
+	vk::PhysicalDeviceFeatures deviceFeatures{};
+
+	vk::DeviceCreateInfo createInfo{};
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.enabledExtensionCount = 0;
+
+	device = physicalDevice.createDevice(createInfo);
+
+	auto graphicsQueueIndex = 0;
+	graphicsQueue = device.getQueue(familyIndices.graphicsFamily.value(), graphicsQueueIndex);
+}
+
 void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
@@ -217,6 +244,8 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	device.destroy();
+
 	if (enableValidationLayers) {
 		instance.destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, *dispatcher);
 	}

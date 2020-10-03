@@ -19,11 +19,17 @@ struct App
 	std::unique_ptr<GLFWwindow, GLFWwindowDeleter> window;
 
 	App(int width, int height);
+	~App() = default;
+
 	void run();
 
 private:
 	vk::Instance instance;
+	vk::PhysicalDevice physicalDevice;
+	vk::Device device;
+	vk::Queue graphicsQueue;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
+
 	vk::DebugUtilsMessengerEXT debugMessenger;
 	bool enableValidationLayers;
 
@@ -36,6 +42,7 @@ private:
 	void pickPhysicalDevice();
 	bool isDeviceSuitable(vk::PhysicalDevice const& device);
 	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& device);
+	void createLogicalDevice();
 	void mainLoop();
 	void cleanup();
 };
