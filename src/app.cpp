@@ -1,5 +1,7 @@
 #include "app.h"
 
+#include "utils.h"
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -63,6 +65,7 @@ void App::initVK()
 	createLogicalDevice();
 	createSwapChain();
 	createImageViews();
+	createGraphicsPipeline();
 }
 
 void App::createInstance()
@@ -393,6 +396,13 @@ void App::createImageViews()
 		auto imageView = device.createImageView(createInfo);
 		swapChainImageViews[i] = imageView;
 	}
+}
+
+void App::createGraphicsPipeline()
+{
+	std::string projectPath = PROJECT_SOURCE_DIR;
+	auto vertShaderCode = Utils::readBinaryFile(projectPath + "shaders/vert.spv");
+	auto fragShaderCode = Utils::readBinaryFile(projectPath + "shaders/frag.spv");
 }
 
 void App::mainLoop()

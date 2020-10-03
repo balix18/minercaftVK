@@ -3,6 +3,7 @@ project(minercaftVK-App)
 
 add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
+target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/")
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -21,4 +22,5 @@ target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
 target_sources(${PROJECT_NAME} PRIVATE 
     "src/main.cpp"
     "src/app.cpp"
+    "src/utils.cpp"
 )

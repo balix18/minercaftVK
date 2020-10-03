@@ -69,6 +69,7 @@ private:
 	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
 	void createSwapChain();
 	void createImageViews();
+	void createGraphicsPipeline();
 	void mainLoop();
 	void cleanup();
 };

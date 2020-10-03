@@ -2,3 +2,5 @@
 out/
 
 CMakeSettings.json
+
+shaders/*.spv

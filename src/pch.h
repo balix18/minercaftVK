@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <optional>
 #include <limits>
+#include <fstream>
 
 #include <vulkan/vulkan.hpp>
 
