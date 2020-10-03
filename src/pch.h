@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <map>
 #include <set>
@@ -16,3 +17,4 @@
 #include <glm/mat4x4.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>

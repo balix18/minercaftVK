@@ -1,8 +1,20 @@
 #include "app.h"
 
+static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
+	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
+{
+	fmt::print(std::cerr, "validation layer: {}\n", pCallbackData->pMessage);
+
+	return VK_FALSE;
+}
+
 App::App(int width, int height) : 
-	width(width),
-	height(height)
+	width{ width },
+	height{ height },
+	enableValidationLayers{ false }
 {
 }
 
@@ -25,14 +37,13 @@ void App::initWindow()
 void App::initVK()
 {
 	createInstance();
+	setupDebugMessenger();
 }
 
 void App::createInstance()
 {
 #ifdef _DEBUG
-	bool enableValidationLayers = true;
-#else
-	bool enableValidationLayers = false;
+	enableValidationLayers = true;
 #endif
 
 	std::vector<std::string> validationLayers = {
@@ -50,19 +61,12 @@ void App::createInstance()
 	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.apiVersion = VK_API_VERSION_1_0;
 
+	auto reqExtensions = getRequiredExtensions();
+
 	vk::InstanceCreateInfo createInfo{};
 	createInfo.pApplicationInfo = &appInfo;
-
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-	std::vector<std::string> glfwInstanceExtensions;
-	for (int i = 0; i < glfwExtensionCount; i++) {
-		glfwInstanceExtensions.emplace_back(glfwExtensions[i]);
-	}
-
-	createInfo.enabledExtensionCount = glfwExtensionCount;
-	createInfo.ppEnabledExtensionNames = glfwExtensions;
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(reqExtensions.size());
+	createInfo.ppEnabledExtensionNames = reqExtensions.data();
 
 	auto ConvertToCStrVector = [](std::vector<std::string> const& input)
 	{
@@ -87,22 +91,56 @@ void App::createInstance()
 		throw std::runtime_error("failed to create instance!");
 	}
 
+	dispatcher = std::make_unique<vk::DispatchLoaderDynamic>(instance, vkGetInstanceProcAddr);
+
 	vk::Optional<const std::string> layerName(nullptr);
-	auto extensions = vk::enumerateInstanceExtensionProperties(layerName);
+	auto extensionProps = vk::enumerateInstanceExtensionProperties(layerName);
 
 	fmt::print("avaliable extensions:\n");
-	for (auto const& ext : extensions) {
-		fmt::print("  - {}\n", ext.extensionName);
+	for (auto const& extensionProp : extensionProps) {
+		fmt::print("  - {}\n", extensionProp.extensionName);
 	}
 
-	for (auto const& glfwExt : glfwInstanceExtensions) {
-		auto resIt = std::find_if(extensions.begin(), extensions.end(), [&](vk::ExtensionProperties const& p) { 
-			return p.extensionName == glfwExt; 
+	// check if all required extensions are available
+	for (auto const& ext : reqExtensions) {
+		auto resIt = std::find_if(extensionProps.begin(), extensionProps.end(), [&](vk::ExtensionProperties const& p) { 
+			return std::strcmp(p.extensionName, ext) == 0; 
 		});
-		if (resIt == extensions.end()) {
-			throw std::runtime_error(fmt::format("glfw required extension missing: ", glfwExt));
+		if (resIt == extensionProps.end()) {
+			throw std::runtime_error(fmt::format("required extension missing: ", ext));
 		}
 	}
+}
+
+void App::setupDebugMessenger()
+{
+	if (!enableValidationLayers) {
+		return;
+	}
+
+	vk::DebugUtilsMessengerCreateInfoEXT createInfo{};
+	createInfo.messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+	createInfo.messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
+	createInfo.pfnUserCallback = vkDebugCallback;
+	createInfo.pUserData = nullptr;
+
+	auto res = instance.createDebugUtilsMessengerEXT(&createInfo, nullptr, &debugMessenger, *dispatcher);
+	if (res != vk::Result::eSuccess) {
+		throw std::runtime_error("failed to set up debug messenger!");
+	}
+}
+
+std::vector<const char*> App::getRequiredExtensions()
+{
+	uint32_t glfwExtensionCount = 0;
+	auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+	if (enableValidationLayers) {
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	}
+
+	return extensions;
 }
 
 bool App::checkValidationLayerSupport(std::vector<std::string> const& validationLayers)
@@ -130,6 +168,11 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	if (enableValidationLayers) {
+		instance.destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, *dispatcher);
+	}
+
+	dispatcher.reset();
 	instance.destroy();
 	window.reset();
 	glfwTerminate();
