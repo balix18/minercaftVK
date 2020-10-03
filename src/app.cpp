@@ -38,6 +38,7 @@ void App::initVK()
 {
 	createInstance();
 	setupDebugMessenger();
+	pickPhysicalDevice();
 }
 
 void App::createInstance()
@@ -157,6 +158,34 @@ bool App::checkValidationLayerSupport(std::vector<std::string> const& validation
 	}
 
 	return true;
+}
+
+void App::pickPhysicalDevice()
+{
+	vk::PhysicalDevice physicalDevice = nullptr;
+	auto physicalDevices = instance.enumeratePhysicalDevices();
+
+	auto isDeviceSuitable = [](vk::PhysicalDevice const& device) {
+		auto deviceProps = device.getProperties();
+		auto deviceFeatures = device.getFeatures();
+
+		return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
+			&& deviceFeatures.geometryShader;
+	};
+
+	for (auto const& device : physicalDevices) {
+		if (isDeviceSuitable(device)) {
+			physicalDevice = device;
+			break;
+		}
+	}
+
+	if (!physicalDevice) {
+		throw std::runtime_error("failed to find a suitable GPU!");
+	}
+
+	auto deviceName = physicalDevice.getProperties().deviceName;
+	fmt::print("Using {} as physical device\n", deviceName);
 }
 
 void App::mainLoop()

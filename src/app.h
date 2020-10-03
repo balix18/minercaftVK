@@ -26,6 +26,7 @@ private:
 	void setupDebugMessenger();
 	std::vector<const char*> getRequiredExtensions();
 	bool checkValidationLayerSupport(std::vector<std::string> const& validationLayers);
+	void pickPhysicalDevice();
 	void mainLoop();
 	void cleanup();
 };
