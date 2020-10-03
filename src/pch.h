@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <optional>
+#include <limits>
 
 #include <vulkan/vulkan.hpp>
 

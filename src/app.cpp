@@ -18,6 +18,9 @@ App::App(int width, int height) :
 	physicalDevice{ nullptr },
 	device{ nullptr },
 	graphicsQueue{ nullptr },
+	presentQueue{ nullptr },
+	surface{ nullptr },
+	swapChain{ nullptr },
 	dispatcher{ nullptr },
 	debugMessenger{ nullptr },
 	enableValidationLayers{ false }
@@ -58,6 +61,7 @@ void App::initVK()
 	createSurface();
 	pickPhysicalDevice();
 	createLogicalDevice();
+	createSwapChain();
 }
 
 void App::createInstance()
@@ -213,10 +217,17 @@ bool App::isDeviceSuitable(vk::PhysicalDevice const& device)
 	auto indices = findQueueFamilies(device);
 	auto extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
 
+	bool swapChainAdequate = false;
+	if (extensionsSupported) {
+		auto swapChainSupport = querySwapChainSupport(device);
+		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+	}
+
 	return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
 		&& deviceFeatures.geometryShader
 		&& indices.isComplete()
-		&& extensionsSupported;
+		&& extensionsSupported
+		&& swapChainAdequate;
 }
 
 QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
@@ -275,6 +286,91 @@ void App::createLogicalDevice()
 	presentQueue = device.getQueue(familyIndices.presentFamily.value(), queueIndex);
 }
 
+SwapChainSupportDetails App::querySwapChainSupport(vk::PhysicalDevice const& device)
+{
+	SwapChainSupportDetails details;
+	details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
+	details.formats = device.getSurfaceFormatsKHR(surface);
+	details.presentModes = device.getSurfacePresentModesKHR(surface);
+
+	return details;
+}
+
+vk::SurfaceFormatKHR App::chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats)
+{
+	for (auto const& availableFormat : availableFormats) {
+		if (availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
+			return availableFormat;
+		}
+	}
+
+	throw std::runtime_error("best surface format unavailable");
+}
+
+vk::PresentModeKHR App::chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes)
+{
+	for (auto const& availablePresentMode : availablePresentModes) {
+		if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
+			return availablePresentMode;
+		}
+	}
+
+	throw std::runtime_error("best present mode unavailable");
+}
+
+vk::Extent2D App::chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities)
+{
+	auto specialValue = std::numeric_limits<uint32_t>::max();
+	if (capabilities.currentExtent.width != specialValue && capabilities.currentExtent.height != specialValue) {
+		return capabilities.currentExtent;
+	}
+
+	throw std::runtime_error("best extent unavailable");
+}
+
+void App::createSwapChain()
+{
+	auto swapChainSupport = querySwapChainSupport(physicalDevice);
+	auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	auto extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+	auto const minImageCount = swapChainSupport.capabilities.minImageCount;
+	auto const maxImageCount = swapChainSupport.capabilities.maxImageCount;
+
+	auto imageCount = minImageCount + 1;
+	if (maxImageCount > 0 && imageCount > maxImageCount) {
+		imageCount = maxImageCount;
+	}
+
+	vk::SwapchainCreateInfoKHR createInfo{};
+	createInfo.surface = surface;
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+
+	auto queueFamilies = findQueueFamilies(physicalDevice);
+	if (queueFamilies.graphicsFamily != queueFamilies.presentFamily) {
+		throw std::runtime_error("needs concurrent sharing mode");
+	}
+
+	createInfo.imageSharingMode = vk::SharingMode::eExclusive;
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+	createInfo.oldSwapchain = nullptr;
+
+	swapChain = device.createSwapchainKHR(createInfo);
+
+	swapChainImages = device.getSwapchainImagesKHR(swapChain);
+	swapChainImageFormat = surfaceFormat.format;
+	swapChainExtent = extent;
+}
+
 void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
@@ -284,6 +380,7 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	device.destroySwapchainKHR(swapChain);
 	device.destroy();
 
 	if (enableValidationLayers) {

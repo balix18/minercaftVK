@@ -8,6 +8,13 @@ struct QueueFamilyIndices
 	bool isComplete();
 };
 
+struct SwapChainSupportDetails
+{
+	vk::SurfaceCapabilitiesKHR capabilities;
+	std::vector<vk::SurfaceFormatKHR> formats;
+	std::vector<vk::PresentModeKHR> presentModes;
+};
+
 struct App
 {
 	int width, height;
@@ -31,6 +38,10 @@ private:
 	vk::Queue graphicsQueue;
 	vk::Queue presentQueue;
 	vk::SurfaceKHR surface;
+	vk::SwapchainKHR swapChain;
+	std::vector<vk::Image> swapChainImages;
+	vk::Format swapChainImageFormat;
+	vk::Extent2D swapChainExtent;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
@@ -51,6 +62,11 @@ private:
 	bool isDeviceSuitable(vk::PhysicalDevice const& device);
 	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& device);
 	void createLogicalDevice();
+	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice const& device);
+	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
+	vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
+	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
+	void createSwapChain();
 	void mainLoop();
 	void cleanup();
 };
