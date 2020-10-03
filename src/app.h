@@ -42,6 +42,7 @@ private:
 	std::vector<vk::Image> swapChainImages;
 	vk::Format swapChainImageFormat;
 	vk::Extent2D swapChainExtent;
+	std::vector<vk::ImageView> swapChainImageViews;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
@@ -67,6 +68,7 @@ private:
 	vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
 	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
 	void createSwapChain();
+	void createImageViews();
 	void mainLoop();
 	void cleanup();
 };

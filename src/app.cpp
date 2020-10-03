@@ -62,6 +62,7 @@ void App::initVK()
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapChain();
+	createImageViews();
 }
 
 void App::createInstance()
@@ -371,6 +372,29 @@ void App::createSwapChain()
 	swapChainExtent = extent;
 }
 
+void App::createImageViews()
+{
+	swapChainImageViews.resize(swapChainImages.size());
+	for (int i = 0; i < swapChainImages.size(); i++) {
+		vk::ImageViewCreateInfo createInfo{};
+		createInfo.image = swapChainImages[i];
+		createInfo.viewType = vk::ImageViewType::e2D;
+		createInfo.format = swapChainImageFormat;
+		createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+		createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+		createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		auto imageView = device.createImageView(createInfo);
+		swapChainImageViews[i] = imageView;
+	}
+}
+
 void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
@@ -380,6 +404,10 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	for (auto const& imageView : swapChainImageViews) {
+		device.destroyImageView(imageView);
+	}
+
 	device.destroySwapchainKHR(swapChain);
 	device.destroy();
 
