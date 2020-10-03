@@ -44,6 +44,7 @@ void App::initVK()
 {
 	createInstance();
 	setupDebugMessenger();
+	createSurface();
 	pickPhysicalDevice();
 	createLogicalDevice();
 }
@@ -133,6 +134,17 @@ void App::setupDebugMessenger()
 	if (res != vk::Result::eSuccess) {
 		throw std::runtime_error("failed to set up debug messenger!");
 	}
+}
+
+void App::createSurface()
+{
+	VkSurfaceKHR vkSurface{};
+	auto res = glfwCreateWindowSurface(instance, window.get(), nullptr, &vkSurface);
+	if (res != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface!");
+	}
+
+	surface = vkSurface;
 }
 
 std::vector<const char*> App::getRequiredExtensions()
@@ -249,9 +261,11 @@ void App::cleanup()
 	if (enableValidationLayers) {
 		instance.destroyDebugUtilsMessengerEXT(debugMessenger, nullptr, *dispatcher);
 	}
-
 	dispatcher.reset();
+
+	instance.destroySurfaceKHR(surface);
 	instance.destroy();
+
 	window.reset();
 	glfwTerminate();
 }

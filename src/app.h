@@ -28,6 +28,7 @@ private:
 	vk::PhysicalDevice physicalDevice;
 	vk::Device device;
 	vk::Queue graphicsQueue;
+	vk::SurfaceKHR surface;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
@@ -37,6 +38,7 @@ private:
 	void initVK();
 	void createInstance();
 	void setupDebugMessenger();
+	void createSurface();
 	std::vector<const char*> getRequiredExtensions();
 	bool checkValidationLayerSupport(std::vector<std::string> const& validationLayers);
 	void pickPhysicalDevice();
