@@ -165,14 +165,6 @@ void App::pickPhysicalDevice()
 	vk::PhysicalDevice physicalDevice = nullptr;
 	auto physicalDevices = instance.enumeratePhysicalDevices();
 
-	auto isDeviceSuitable = [](vk::PhysicalDevice const& device) {
-		auto deviceProps = device.getProperties();
-		auto deviceFeatures = device.getFeatures();
-
-		return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-			&& deviceFeatures.geometryShader;
-	};
-
 	for (auto const& device : physicalDevices) {
 		if (isDeviceSuitable(device)) {
 			physicalDevice = device;
@@ -186,6 +178,34 @@ void App::pickPhysicalDevice()
 
 	auto deviceName = physicalDevice.getProperties().deviceName;
 	fmt::print("Using {} as physical device\n", deviceName);
+}
+
+bool App::isDeviceSuitable(vk::PhysicalDevice const& device)
+{
+	auto deviceProps = device.getProperties();
+	auto deviceFeatures = device.getFeatures();
+	auto indices = findQueueFamilies(device);
+
+	return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
+		&& deviceFeatures.geometryShader
+		&& indices.isComplete();
+}
+
+QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
+{
+	QueueFamilyIndices indices;
+
+	int count = 0;
+	auto queueFamilies = device.getQueueFamilyProperties();
+	for (auto const& queueFamily : queueFamilies) {
+		if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
+			indices.graphicsFamily = count;
+			break;
+		}
+		count++;
+	}
+
+	return indices;
 }
 
 void App::mainLoop()
@@ -212,4 +232,9 @@ void App::GLFWwindowDeleter::operator()(GLFWwindow* ptr)
 	if (ptr) {
 		glfwDestroyWindow(ptr);
 	}
+}
+
+bool QueueFamilyIndices::isComplete()
+{
+	return graphicsFamily.has_value();
 }

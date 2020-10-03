@@ -1,5 +1,12 @@
 #pragma once
 
+struct QueueFamilyIndices
+{
+	std::optional<uint32_t> graphicsFamily;
+
+	bool isComplete();
+};
+
 struct App
 {
 	int width, height;
@@ -27,6 +34,8 @@ private:
 	std::vector<const char*> getRequiredExtensions();
 	bool checkValidationLayerSupport(std::vector<std::string> const& validationLayers);
 	void pickPhysicalDevice();
+	bool isDeviceSuitable(vk::PhysicalDevice const& device);
+	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& device);
 	void mainLoop();
 	void cleanup();
 };
