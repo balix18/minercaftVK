@@ -27,6 +27,9 @@ App::App(int width, int height) :
 	debugMessenger{ nullptr },
 	enableValidationLayers{ false }
 {
+	currentFrame = 0;
+	maxFramesInFlight = 2;
+
 	validationLayers = {
 		"VK_LAYER_KHRONOS_validation",
 	};
@@ -70,6 +73,7 @@ void App::initVK()
 	createFramebuffers();
 	createCommandPool();
 	createCommandBuffers();
+	createSyncObjects();
 }
 
 void App::createInstance()
@@ -423,11 +427,21 @@ void App::createRenderPass()
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	vk::SubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	dependency.srcAccessMask = {};
+	dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+
 	vk::RenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.attachmentCount = 1;
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependency;
 
 	renderPass = device.createRenderPass(renderPassInfo);
 }
@@ -606,6 +620,26 @@ void App::createCommandBuffers()
 	}
 }
 
+void App::createSyncObjects()
+{
+	imageAvailableSemaphores.resize(maxFramesInFlight);
+	renderFinishedSemaphores.resize(maxFramesInFlight);
+	inFlightFences.resize(maxFramesInFlight);
+
+	vk::SemaphoreCreateInfo semaphoreInfo{};
+
+	vk::FenceCreateInfo fenceInfo{};
+	fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		imageAvailableSemaphores[i] = device.createSemaphore(semaphoreInfo);
+		renderFinishedSemaphores[i] = device.createSemaphore(semaphoreInfo);
+		inFlightFences[i] = device.createFence(fenceInfo);
+	}
+
+	imagesInFlight.resize(swapChainImages.size());
+}
+
 vk::ShaderModule App::createShaderModule(std::vector<char> const& code)
 {
 	vk::ShaderModuleCreateInfo createInfo{};
@@ -619,11 +653,64 @@ void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
 		glfwPollEvents();
+		drawFrame();
 	}
+
+	device.waitIdle();
+}
+
+void App::drawFrame()
+{
+	auto noTimeout = std::numeric_limits<uint64_t>::max();
+
+	device.waitForFences(1, &inFlightFences[currentFrame], VK_TRUE, noTimeout);
+
+	auto imageIndex = device.acquireNextImageKHR(swapChain, noTimeout, imageAvailableSemaphores[currentFrame], nullptr).value;
+
+	if (imagesInFlight[imageIndex]) {
+		device.waitForFences(1, &imagesInFlight[imageIndex], VK_TRUE, noTimeout);
+	}
+	imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+	std::vector<vk::Semaphore> waitSemaphores = { imageAvailableSemaphores[currentFrame] };
+	std::vector<vk::Semaphore> signalSemaphores = { renderFinishedSemaphores[currentFrame] };
+	vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+
+	vk::SubmitInfo submitInfo{};
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores.data();
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores.data();
+
+	device.resetFences(1, &inFlightFences[currentFrame]);
+
+	graphicsQueue.submit(1, &submitInfo, inFlightFences[currentFrame]);
+
+	std::vector<vk::SwapchainKHR> swapChains = { swapChain };
+
+	vk::PresentInfoKHR presentInfo{};
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores.data();
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains.data();
+	presentInfo.pImageIndices = &imageIndex;
+
+	presentQueue.presentKHR(presentInfo);
+
+	currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
 void App::cleanup()
 {
+	for (int i = 0; i < maxFramesInFlight; i++) {
+		device.destroySemaphore(renderFinishedSemaphores[i]);
+		device.destroySemaphore(imageAvailableSemaphores[i]);
+		device.destroyFence(inFlightFences[i]);
+	}
+
 	device.destroyCommandPool(commandPool);
 
 	for (auto const& framebuffer : swapChainFramebuffers) {

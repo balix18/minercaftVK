@@ -49,10 +49,14 @@ private:
 	std::vector<vk::Framebuffer> swapChainFramebuffers;
 	vk::CommandPool commandPool;
 	std::vector<vk::CommandBuffer> commandBuffers;
+	std::vector<vk::Semaphore> imageAvailableSemaphores, renderFinishedSemaphores;
+	std::vector<vk::Fence> inFlightFences, imagesInFlight;
+	size_t currentFrame;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
 	bool enableValidationLayers;
+	int maxFramesInFlight;
 
 	std::vector<const char*> validationLayers;
 	std::vector<const char*> deviceExtensions;
@@ -80,7 +84,9 @@ private:
 	void createFramebuffers();
 	void createCommandPool();
 	void createCommandBuffers();
+	void createSyncObjects();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void mainLoop();
+	void drawFrame();
 	void cleanup();
 };
