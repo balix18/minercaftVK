@@ -43,6 +43,7 @@ private:
 	vk::Format swapChainImageFormat;
 	vk::Extent2D swapChainExtent;
 	std::vector<vk::ImageView> swapChainImageViews;
+	vk::RenderPass renderPass;
 	vk::PipelineLayout pipelineLayout;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
@@ -70,6 +71,7 @@ private:
 	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
 	void createSwapChain();
 	void createImageViews();
+	void createRenderPass();
 	void createGraphicsPipeline();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void mainLoop();
