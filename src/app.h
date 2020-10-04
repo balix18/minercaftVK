@@ -43,6 +43,7 @@ private:
 	vk::Format swapChainImageFormat;
 	vk::Extent2D swapChainExtent;
 	std::vector<vk::ImageView> swapChainImageViews;
+	vk::PipelineLayout pipelineLayout;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
