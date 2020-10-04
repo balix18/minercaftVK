@@ -517,6 +517,23 @@ void App::createGraphicsPipeline()
 
 	pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
 
+	vk::GraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStages.data();
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = nullptr;
+	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.renderPass = renderPass;
+	pipelineInfo.subpass = 0;	// subpass index
+
+	graphicsPipeline = static_cast<vk::Pipeline&>(device.createGraphicsPipeline(nullptr, pipelineInfo));
+
 	device.destroyShaderModule(vertShaderModule);
 	device.destroyShaderModule(fragShaderModule);
 }
@@ -539,6 +556,7 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	device.destroyPipeline(graphicsPipeline);
 	device.destroyPipelineLayout(pipelineLayout);
 	device.destroyRenderPass(renderPass);
 

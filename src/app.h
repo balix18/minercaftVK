@@ -45,6 +45,7 @@ private:
 	std::vector<vk::ImageView> swapChainImageViews;
 	vk::RenderPass renderPass;
 	vk::PipelineLayout pipelineLayout;
+	vk::Pipeline graphicsPipeline;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
