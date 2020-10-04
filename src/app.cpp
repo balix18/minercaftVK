@@ -68,6 +68,8 @@ void App::initVK()
 	createRenderPass();
 	createGraphicsPipeline();
 	createFramebuffers();
+	createCommandPool();
+	createCommandBuffers();
 }
 
 void App::createInstance()
@@ -559,6 +561,51 @@ void App::createFramebuffers()
 	}
 }
 
+void App::createCommandPool()
+{
+	auto queueFamilies = findQueueFamilies(physicalDevice);
+
+	vk::CommandPoolCreateInfo poolInfo{};
+	poolInfo.queueFamilyIndex = queueFamilies.graphicsFamily.value();
+	poolInfo.flags = {};
+
+	commandPool = device.createCommandPool(poolInfo);
+}
+
+void App::createCommandBuffers()
+{
+	commandBuffers.resize(swapChainFramebuffers.size());
+
+	vk::CommandBufferAllocateInfo allocInfo{};
+	allocInfo.commandPool = commandPool;
+	allocInfo.level = vk::CommandBufferLevel::ePrimary;
+	allocInfo.commandBufferCount = commandBuffers.size();
+
+	commandBuffers = device.allocateCommandBuffers(allocInfo);
+
+	for (int i = 0; i < commandBuffers.size(); i++) {
+		vk::CommandBufferBeginInfo beginInfo{};
+		beginInfo.flags = {};
+
+		vk::ClearValue clearColor = std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+
+		vk::RenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.renderPass = renderPass;
+		renderPassInfo.framebuffer = swapChainFramebuffers[i];
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = swapChainExtent;
+		renderPassInfo.clearValueCount = 1;
+		renderPassInfo.pClearValues = &clearColor;
+
+		commandBuffers[i].begin(beginInfo);
+		commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
+		commandBuffers[i].draw(3, 1, 0, 0);
+		commandBuffers[i].endRenderPass();
+		commandBuffers[i].end();
+	}
+}
+
 vk::ShaderModule App::createShaderModule(std::vector<char> const& code)
 {
 	vk::ShaderModuleCreateInfo createInfo{};
@@ -577,6 +624,8 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	device.destroyCommandPool(commandPool);
+
 	for (auto const& framebuffer : swapChainFramebuffers) {
 		device.destroyFramebuffer(framebuffer);
 	}
