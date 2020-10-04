@@ -67,6 +67,7 @@ void App::initVK()
 	createImageViews();
 	createRenderPass();
 	createGraphicsPipeline();
+	createFramebuffers();
 }
 
 void App::createInstance()
@@ -538,6 +539,26 @@ void App::createGraphicsPipeline()
 	device.destroyShaderModule(fragShaderModule);
 }
 
+void App::createFramebuffers()
+{
+	swapChainFramebuffers.resize(swapChainImageViews.size());
+	for (int i = 0; i < swapChainImageViews.size(); i++) {
+		std::vector<vk::ImageView> attachments{
+			swapChainImageViews[i]
+		};
+
+		vk::FramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.renderPass = renderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = attachments.data();
+		framebufferInfo.width = swapChainExtent.width;
+		framebufferInfo.height = swapChainExtent.height;
+		framebufferInfo.layers = 1;
+
+		swapChainFramebuffers[i] = device.createFramebuffer(framebufferInfo);
+	}
+}
+
 vk::ShaderModule App::createShaderModule(std::vector<char> const& code)
 {
 	vk::ShaderModuleCreateInfo createInfo{};
@@ -556,6 +577,10 @@ void App::mainLoop()
 
 void App::cleanup()
 {
+	for (auto const& framebuffer : swapChainFramebuffers) {
+		device.destroyFramebuffer(framebuffer);
+	}
+
 	device.destroyPipeline(graphicsPipeline);
 	device.destroyPipelineLayout(pipelineLayout);
 	device.destroyRenderPass(renderPass);

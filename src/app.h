@@ -46,6 +46,7 @@ private:
 	vk::RenderPass renderPass;
 	vk::PipelineLayout pipelineLayout;
 	vk::Pipeline graphicsPipeline;
+	std::vector<vk::Framebuffer> swapChainFramebuffers;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
@@ -74,6 +75,7 @@ private:
 	void createImageViews();
 	void createRenderPass();
 	void createGraphicsPipeline();
+	void createFramebuffers();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void mainLoop();
 	void cleanup();
