@@ -403,6 +403,36 @@ void App::createGraphicsPipeline()
 	std::string projectPath = PROJECT_SOURCE_DIR;
 	auto vertShaderCode = Utils::readBinaryFile(projectPath + "shaders/vert.spv");
 	auto fragShaderCode = Utils::readBinaryFile(projectPath + "shaders/frag.spv");
+
+	auto vertShaderModule = createShaderModule(vertShaderCode);
+	auto fragShaderModule = createShaderModule(fragShaderCode);
+
+	vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
+	vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
+	vertShaderStageInfo.module = vertShaderModule;
+	vertShaderStageInfo.pName = "main";
+
+	vk::PipelineShaderStageCreateInfo fragShaderStageInfo{};
+	fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
+	fragShaderStageInfo.module = fragShaderModule;
+	fragShaderStageInfo.pName = "main";
+
+	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = {
+		vertShaderStageInfo,
+		fragShaderStageInfo
+	};
+
+	device.destroyShaderModule(vertShaderModule);
+	device.destroyShaderModule(fragShaderModule);
+}
+
+vk::ShaderModule App::createShaderModule(std::vector<char> const& code)
+{
+	vk::ShaderModuleCreateInfo createInfo{};
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+	return device.createShaderModule(createInfo);
 }
 
 void App::mainLoop()

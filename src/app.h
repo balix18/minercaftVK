@@ -70,6 +70,7 @@ private:
 	void createSwapChain();
 	void createImageViews();
 	void createGraphicsPipeline();
+	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void mainLoop();
 	void cleanup();
 };
