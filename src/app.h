@@ -31,6 +31,8 @@ struct App
 
 	void run();
 
+	void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
 private:
 	vk::Instance instance;
 	vk::PhysicalDevice physicalDevice;
@@ -52,6 +54,7 @@ private:
 	std::vector<vk::Semaphore> imageAvailableSemaphores, renderFinishedSemaphores;
 	std::vector<vk::Fence> inFlightFences, imagesInFlight;
 	size_t currentFrame;
+	bool framebufferResized;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
 
 	vk::DebugUtilsMessengerEXT debugMessenger;
@@ -77,6 +80,8 @@ private:
 	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
 	vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
 	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
+	void recreateSwapChain();
+	void cleanupSwapChain();
 	void createSwapChain();
 	void createImageViews();
 	void createRenderPass();

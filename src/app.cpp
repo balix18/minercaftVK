@@ -24,6 +24,7 @@ App::App(int width, int height) :
 	surface{ nullptr },
 	swapChain{ nullptr },
 	dispatcher{ nullptr },
+	framebufferResized{ false },
 	debugMessenger{ nullptr },
 	enableValidationLayers{ false }
 {
@@ -51,12 +52,22 @@ void App::run()
 	cleanup();
 }
 
+void App::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+	framebufferResized = true;
+}
+
 void App::initWindow()
 {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	window.reset(glfwCreateWindow(width, height, "minercaftVK-App", nullptr, nullptr));
+	glfwSetWindowUserPointer(window.get(), this);
+	glfwSetFramebufferSizeCallback(window.get(), [](GLFWwindow* window, int width, int height) {
+		auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
+		app->framebufferResizeCallback(window, height, width);
+	});
 }
 
 void App::initVK()
@@ -118,7 +129,7 @@ void App::createInstance()
 	// check if all required extensions are available
 	for (auto const& ext : reqExtensions) {
 		auto resIt = std::find_if(extensionProps.begin(), extensionProps.end(), [&](vk::ExtensionProperties const& p) { 
-			return !!std::strcmp(p.extensionName, ext); 
+			return std::strcmp(p.extensionName, ext) == 0; 
 		});
 		if (resIt == extensionProps.end()) {
 			throw std::runtime_error(fmt::format("required extension missing: ", ext));
@@ -174,7 +185,7 @@ bool App::checkValidationLayerSupport(std::vector<const char*> const& validation
 
 	for (auto const& layer : validationLayers) {
 		auto resIt = std::find_if(availableLayers.begin(), availableLayers.end(), [&](vk::LayerProperties const& p) {
-			return !!std::strcmp(p.layerName, layer);
+			return std::strcmp(p.layerName, layer) == 0;
 		});
 		if (resIt == availableLayers.end()) {
 			return false;
@@ -193,7 +204,7 @@ bool App::checkDeviceExtensionSupport(vk::PhysicalDevice const& device, std::vec
 	for (auto const& ext : availableExtensions) {
 		tmp.push_back(std::string{ ext.extensionName });
 		auto resIt = std::find_if(requiredExtensions.begin(), requiredExtensions.end(), [&](const char* p) {
-			return !!std::strcmp(ext.extensionName, p);
+			return std::strcmp(ext.extensionName, p) == 0;
 		});
 		if (resIt != requiredExtensions.end()) {
 			requiredExtensions.erase(resIt);
@@ -338,6 +349,47 @@ vk::Extent2D App::chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilitie
 	}
 
 	throw std::runtime_error("best extent unavailable");
+}
+
+void App::recreateSwapChain()
+{
+	// alljunk meg a renderelessel amig le van minimalizalva az ablak
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window.get(), &width, &height); 
+	while (width == 0 || height == 0) {
+		glfwGetFramebufferSize(window.get(), &width, &height);
+		glfwWaitEvents();
+	}
+
+	device.waitIdle();
+
+	cleanupSwapChain();
+
+	createSwapChain();
+	createImageViews();
+	createRenderPass();
+	createGraphicsPipeline();
+	createFramebuffers();
+	createCommandBuffers();
+}
+
+void App::cleanupSwapChain()
+{
+	for (auto const& framebuffer : swapChainFramebuffers) {
+		device.destroyFramebuffer(framebuffer);
+	}
+
+	device.freeCommandBuffers(commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+	device.destroyPipeline(graphicsPipeline);
+	device.destroyPipelineLayout(pipelineLayout);
+	device.destroyRenderPass(renderPass);
+
+	for (auto const& imageView : swapChainImageViews) {
+		device.destroyImageView(imageView);
+	}
+
+	device.destroySwapchainKHR(swapChain);
 }
 
 void App::createSwapChain()
@@ -663,10 +715,32 @@ void App::drawFrame()
 {
 	auto noTimeout = std::numeric_limits<uint64_t>::max();
 
+	auto handleErrorOutOfDateKHR = [](std::exception& e) {
+		static auto outOfDateErrorStr = "vk::Queue::presentKHR: ErrorOutOfDateKHR";
+		if (std::strcmp(e.what(), outOfDateErrorStr) != 0) {
+			throw e;
+		}
+	};
+
 	device.waitForFences(1, &inFlightFences[currentFrame], VK_TRUE, noTimeout);
 
-	auto imageIndex = device.acquireNextImageKHR(swapChain, noTimeout, imageAvailableSemaphores[currentFrame], nullptr).value;
+	vk::ResultValue<uint32_t> acquireRes{ vk::Result::eIncomplete, 0 };
+	try {
+		acquireRes = device.acquireNextImageKHR(swapChain, noTimeout, imageAvailableSemaphores[currentFrame], nullptr);
+	}
+	catch (std::exception& e) {
+		handleErrorOutOfDateKHR(e);
+	}
 
+	if (acquireRes.result == vk::Result::eErrorOutOfDateKHR || acquireRes.result == vk::Result::eSuboptimalKHR) {
+		recreateSwapChain();
+		return;
+	}
+	else if (acquireRes.result != vk::Result::eSuccess) {
+		throw std::runtime_error("failed to acquire swap chain image!");
+	}
+
+	uint32_t imageIndex = acquireRes.value;
 	if (imagesInFlight[imageIndex]) {
 		device.waitForFences(1, &imagesInFlight[imageIndex], VK_TRUE, noTimeout);
 	}
@@ -698,13 +772,29 @@ void App::drawFrame()
 	presentInfo.pSwapchains = swapChains.data();
 	presentInfo.pImageIndices = &imageIndex;
 
-	presentQueue.presentKHR(presentInfo);
+	vk::Result presentRes{ vk::Result::eIncomplete };
+	try {
+		presentRes = presentQueue.presentKHR(presentInfo);
+	}
+	catch (std::exception& e) {
+		handleErrorOutOfDateKHR(e);
+	}
+
+	if (presentRes == vk::Result::eErrorOutOfDateKHR || presentRes == vk::Result::eSuboptimalKHR || framebufferResized) {
+		framebufferResized = false;
+		recreateSwapChain();
+	}
+	else if (presentRes != vk::Result::eSuccess) {
+		throw std::runtime_error("failed to acquire swap chain image!");
+	}
 
 	currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
 void App::cleanup()
 {
+	cleanupSwapChain();
+
 	for (int i = 0; i < maxFramesInFlight; i++) {
 		device.destroySemaphore(renderFinishedSemaphores[i]);
 		device.destroySemaphore(imageAvailableSemaphores[i]);
@@ -713,19 +803,6 @@ void App::cleanup()
 
 	device.destroyCommandPool(commandPool);
 
-	for (auto const& framebuffer : swapChainFramebuffers) {
-		device.destroyFramebuffer(framebuffer);
-	}
-
-	device.destroyPipeline(graphicsPipeline);
-	device.destroyPipelineLayout(pipelineLayout);
-	device.destroyRenderPass(renderPass);
-
-	for (auto const& imageView : swapChainImageViews) {
-		device.destroyImageView(imageView);
-	}
-
-	device.destroySwapchainKHR(swapChain);
 	device.destroy();
 
 	if (enableValidationLayers) {
