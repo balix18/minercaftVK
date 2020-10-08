@@ -15,6 +15,15 @@ struct SwapChainSupportDetails
 	std::vector<vk::PresentModeKHR> presentModes;
 };
 
+struct Vertex
+{
+	glm::vec2 pos;
+	glm::vec3 color;
+
+	static vk::VertexInputBindingDescription getBindingDescription();
+	static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions();
+};
+
 struct App
 {
 	int width, height;
@@ -53,6 +62,9 @@ private:
 	std::vector<vk::CommandBuffer> commandBuffers;
 	std::vector<vk::Semaphore> imageAvailableSemaphores, renderFinishedSemaphores;
 	std::vector<vk::Fence> inFlightFences, imagesInFlight;
+	std::vector<Vertex> vertices;
+	vk::Buffer vertexBuffer;
+	vk::DeviceMemory vertexBufferMemory;
 	size_t currentFrame;
 	bool framebufferResized;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
@@ -88,6 +100,8 @@ private:
 	void createGraphicsPipeline();
 	void createFramebuffers();
 	void createCommandPool();
+	void createVertexBuffer();
+	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 	void createCommandBuffers();
 	void createSyncObjects();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);

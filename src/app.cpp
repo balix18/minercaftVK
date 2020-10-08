@@ -42,6 +42,12 @@ App::App(int width, int height) :
 #ifdef _DEBUG
 	enableValidationLayers = true;
 #endif
+
+	vertices = {
+		{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	};
 }
 
 void App::run()
@@ -83,6 +89,7 @@ void App::initVK()
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
+	createVertexBuffer();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -522,11 +529,14 @@ void App::createGraphicsPipeline()
 		fragShaderStageInfo
 	};
 
+	auto bindingDesc = Vertex::getBindingDescription();
+	auto attributeDesc = Vertex::getAttributeDescriptions();
+
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = nullptr;
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDesc.size());
+	vertexInputInfo.pVertexAttributeDescriptions = attributeDesc.data();
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -638,6 +648,43 @@ void App::createCommandPool()
 	commandPool = device.createCommandPool(poolInfo);
 }
 
+void App::createVertexBuffer()
+{
+	vk::BufferCreateInfo bufferInfo{};
+	bufferInfo.size = sizeof(Vertex) * vertices.size();
+	bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+
+	vertexBuffer = device.createBuffer(bufferInfo);
+
+	vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(vertexBuffer);
+	auto memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+	vk::MemoryAllocateInfo allocInfo{};
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+	vertexBufferMemory = device.allocateMemory(allocInfo);
+	device.bindBufferMemory(vertexBuffer, vertexBufferMemory, 0);
+
+	auto dataPtr = device.mapMemory(vertexBufferMemory, 0, bufferInfo.size);
+	std::memcpy(dataPtr, vertices.data(), static_cast<size_t>(bufferInfo.size));
+	vkUnmapMemory(device, vertexBufferMemory);
+}
+
+uint32_t App::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+{
+	vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find suitable memory type!");
+}
+
 void App::createCommandBuffers()
 {
 	commandBuffers.resize(swapChainFramebuffers.size());
@@ -666,7 +713,12 @@ void App::createCommandBuffers()
 		commandBuffers[i].begin(beginInfo);
 		commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 		commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
-		commandBuffers[i].draw(3, 1, 0, 0);
+
+		vk::Buffer vertexBuffers[] = { vertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+
+		commandBuffers[i].draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 		commandBuffers[i].endRenderPass();
 		commandBuffers[i].end();
 	}
@@ -795,6 +847,9 @@ void App::cleanup()
 {
 	cleanupSwapChain();
 
+	device.destroyBuffer(vertexBuffer);
+	device.freeMemory(vertexBufferMemory);
+
 	for (int i = 0; i < maxFramesInFlight; i++) {
 		device.destroySemaphore(renderFinishedSemaphores[i]);
 		device.destroySemaphore(imageAvailableSemaphores[i]);
@@ -828,4 +883,31 @@ bool QueueFamilyIndices::isComplete()
 {
 	return graphicsFamily.has_value()
 		&& presentFamily.has_value();
+}
+
+vk::VertexInputBindingDescription Vertex::getBindingDescription()
+{
+	vk::VertexInputBindingDescription bindingDescription{};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(Vertex);
+	bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+
+	return bindingDescription;
+}
+
+std::array<vk::VertexInputAttributeDescription, 2> Vertex::getAttributeDescriptions()
+{
+	std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = vk::Format::eR32G32Sfloat;
+	attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+	attributeDescriptions[1].binding = 0;
+	attributeDescriptions[1].location = 1;
+	attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
+	attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+	return attributeDescriptions;
 }
