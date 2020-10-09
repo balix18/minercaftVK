@@ -63,8 +63,9 @@ private:
 	std::vector<vk::Semaphore> imageAvailableSemaphores, renderFinishedSemaphores;
 	std::vector<vk::Fence> inFlightFences, imagesInFlight;
 	std::vector<Vertex> vertices;
-	vk::Buffer vertexBuffer;
-	vk::DeviceMemory vertexBufferMemory;
+	std::vector<uint32_t> indices;
+	vk::Buffer vertexBuffer, indexBuffer;
+	vk::DeviceMemory vertexBufferMemory, indexBufferMemory;
 	size_t currentFrame;
 	bool framebufferResized;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
@@ -102,6 +103,7 @@ private:
 	void createCommandPool();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
 	void createVertexBuffer();
+	void createIndexBuffer();
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 	void createCommandBuffers();

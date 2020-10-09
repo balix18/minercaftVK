@@ -44,9 +44,15 @@ App::App(int width, int height) :
 #endif
 
 	vertices = {
-		{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	};
+
+	indices = {
+		0, 1, 2, 
+		2, 3, 0
 	};
 }
 
@@ -90,6 +96,7 @@ void App::initVK()
 	createFramebuffers();
 	createCommandPool();
 	createVertexBuffer();
+	createIndexBuffer();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -697,6 +704,35 @@ void App::createVertexBuffer()
 	device.freeMemory(stagingBufferMemory);
 }
 
+void App::createIndexBuffer()
+{
+	vk::DeviceSize bufferSize = sizeof(Vertex) * indices.size();
+
+	// staging buffer
+	vk::Buffer stagingBuffer;
+	vk::DeviceMemory stagingBufferMemory;
+	auto stagingUsage = vk::BufferUsageFlagBits::eTransferSrc;
+	auto stagingMemoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+	createBuffer(bufferSize, stagingUsage, stagingMemoryProps, stagingBuffer, stagingBufferMemory);
+
+	// map staging buffer to cpu, and fill it
+	auto dataPtr = device.mapMemory(stagingBufferMemory, 0, bufferSize);
+	std::memcpy(dataPtr, indices.data(), static_cast<size_t>(bufferSize));
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	// index buffer
+	auto bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
+	auto bufferMemoryProperties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+	createBuffer(bufferSize, bufferUsage, bufferMemoryProperties, indexBuffer, indexBufferMemory);
+
+	// copy the index data into the index buffer
+	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+	// cleanup
+	device.destroyBuffer(stagingBuffer);
+	device.freeMemory(stagingBufferMemory);
+}
+
 void App::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
 	vk::CommandBufferAllocateInfo allocInfo{};
@@ -781,8 +817,10 @@ void App::createCommandBuffers()
 		vk::Buffer vertexBuffers[] = { vertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+		commandBuffers[i].bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
 
-		commandBuffers[i].draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+		commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
 		commandBuffers[i].endRenderPass();
 		commandBuffers[i].end();
 	}
@@ -910,6 +948,9 @@ void App::drawFrame()
 void App::cleanup()
 {
 	cleanupSwapChain();
+
+	device.destroyBuffer(indexBuffer);
+	device.freeMemory(indexBufferMemory);
 
 	device.destroyBuffer(vertexBuffer);
 	device.freeMemory(vertexBufferMemory);
