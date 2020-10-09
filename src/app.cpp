@@ -648,27 +648,34 @@ void App::createCommandPool()
 	commandPool = device.createCommandPool(poolInfo);
 }
 
-void App::createVertexBuffer()
+void App::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
 {
 	vk::BufferCreateInfo bufferInfo{};
-	bufferInfo.size = sizeof(Vertex) * vertices.size();
-	bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
-	vertexBuffer = device.createBuffer(bufferInfo);
+	buffer = device.createBuffer(bufferInfo);
 
-	vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(vertexBuffer);
-	auto memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	vk::MemoryRequirements memRequirements = device.getBufferMemoryRequirements(buffer);
+	auto memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
 	vk::MemoryAllocateInfo allocInfo{};
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-	vertexBufferMemory = device.allocateMemory(allocInfo);
-	device.bindBufferMemory(vertexBuffer, vertexBufferMemory, 0);
+	bufferMemory = device.allocateMemory(allocInfo);
+	device.bindBufferMemory(buffer, bufferMemory, 0);
+}
 
-	auto dataPtr = device.mapMemory(vertexBufferMemory, 0, bufferInfo.size);
-	std::memcpy(dataPtr, vertices.data(), static_cast<size_t>(bufferInfo.size));
+void App::createVertexBuffer()
+{
+	vk::DeviceSize bufferSize = sizeof(Vertex) * vertices.size();
+	auto usage = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+	createBuffer(bufferSize, vk::BufferUsageFlagBits::eVertexBuffer, usage, vertexBuffer, vertexBufferMemory);
+
+	auto dataPtr = device.mapMemory(vertexBufferMemory, 0, bufferSize);
+	std::memcpy(dataPtr, vertices.data(), static_cast<size_t>(bufferSize));
 	vkUnmapMemory(device, vertexBufferMemory);
 }
 
