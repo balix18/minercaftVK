@@ -671,12 +671,69 @@ void App::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::Memo
 void App::createVertexBuffer()
 {
 	vk::DeviceSize bufferSize = sizeof(Vertex) * vertices.size();
-	auto usage = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
-	createBuffer(bufferSize, vk::BufferUsageFlagBits::eVertexBuffer, usage, vertexBuffer, vertexBufferMemory);
 
-	auto dataPtr = device.mapMemory(vertexBufferMemory, 0, bufferSize);
+	// staging buffer
+	vk::Buffer stagingBuffer;
+	vk::DeviceMemory stagingBufferMemory;
+	auto stagingUsage = vk::BufferUsageFlagBits::eTransferSrc;
+	auto stagingMemoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+	createBuffer(bufferSize, stagingUsage, stagingMemoryProps, stagingBuffer, stagingBufferMemory);
+
+	// map staging buffer to cpu, and fill it
+	auto dataPtr = device.mapMemory(stagingBufferMemory, 0, bufferSize);
 	std::memcpy(dataPtr, vertices.data(), static_cast<size_t>(bufferSize));
-	vkUnmapMemory(device, vertexBufferMemory);
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	// vertex buffer
+	auto bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer;
+	auto bufferMemoryProperties = vk::MemoryPropertyFlagBits::eDeviceLocal;
+	createBuffer(bufferSize, bufferUsage, bufferMemoryProperties, vertexBuffer, vertexBufferMemory);
+
+	// copy the vertex data into the vertex buffer
+	copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+	// cleanup
+	device.destroyBuffer(stagingBuffer);
+	device.freeMemory(stagingBufferMemory);
+}
+
+void App::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+{
+	vk::CommandBufferAllocateInfo allocInfo{};
+	allocInfo.level = vk::CommandBufferLevel::ePrimary;
+	allocInfo.commandPool = commandPool;
+	allocInfo.commandBufferCount = 1;
+
+	std::vector<vk::CommandBuffer> commandBuffers = device.allocateCommandBuffers(allocInfo);
+
+	auto recordCopyCommandBuffer = [&]() 
+	{
+		vk::CommandBuffer& commandBuffer = commandBuffers[0];
+
+		vk::CommandBufferBeginInfo beginInfo{};
+		beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+		commandBuffer.begin(beginInfo);
+
+		vk::BufferCopy copyRegion{};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = size;
+		commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+
+		commandBuffer.end();
+	};
+
+	recordCopyCommandBuffer();
+
+	vk::SubmitInfo submitInfo{};
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = commandBuffers.data();
+
+	graphicsQueue.submit(1, &submitInfo, nullptr);
+	graphicsQueue.waitIdle();
+
+	device.freeCommandBuffers(commandPool, 1, commandBuffers.data());
 }
 
 uint32_t App::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
