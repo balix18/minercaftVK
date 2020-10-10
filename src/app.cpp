@@ -268,10 +268,10 @@ bool App::isDeviceSuitable(vk::PhysicalDevice const& device)
 	}
 
 	return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-		&& deviceFeatures.geometryShader
 		&& indices.isComplete()
 		&& extensionsSupported
-		&& swapChainAdequate;
+		&& swapChainAdequate
+		&& deviceFeatures.samplerAnisotropy;
 }
 
 QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
@@ -315,6 +315,7 @@ void App::createLogicalDevice()
 	queueCreateInfo.pQueuePriorities = &queuePriority;
 
 	vk::PhysicalDeviceFeatures deviceFeatures{};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	vk::DeviceCreateInfo createInfo{};
 	createInfo.pQueueCreateInfos = &queueCreateInfo;
