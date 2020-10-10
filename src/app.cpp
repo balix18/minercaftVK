@@ -538,14 +538,23 @@ void App::createDescriptorSetLayout()
 {
 	vk::DescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
 	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+	uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
 	uboLayoutBinding.pImmutableSamplers = nullptr;
+	uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+
+	vk::DescriptorSetLayoutBinding samplerLayoutBinding{};
+	samplerLayoutBinding.binding = 1;
+	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
+
+	std::array<vk::DescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
 	vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &uboLayoutBinding;
+	layoutInfo.bindingCount = bindings.size();
+	layoutInfo.pBindings = bindings.data();
 
 	descriptorSetLayout = device.createDescriptorSetLayout(layoutInfo);
 }
@@ -881,13 +890,19 @@ void App::createUniformBuffers()
 
 void App::createDescriptorPool()
 {
-	vk::DescriptorPoolSize poolSize{};
-	poolSize.type = vk::DescriptorType::eUniformBuffer;
-	poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+	vk::DescriptorPoolSize uniformBufferPool{};
+	uniformBufferPool.type = vk::DescriptorType::eUniformBuffer;
+	uniformBufferPool.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+	vk::DescriptorPoolSize combinedImageSampler{};
+	combinedImageSampler.type = vk::DescriptorType::eCombinedImageSampler;
+	combinedImageSampler.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+	std::array<vk::DescriptorPoolSize, 2> poolSizes{ uniformBufferPool, combinedImageSampler };
 
 	vk::DescriptorPoolCreateInfo poolInfo{};
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.poolSizeCount = poolSizes.size();
+	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
 
 	descriptorPool = device.createDescriptorPool(poolInfo);
@@ -910,15 +925,30 @@ void App::createDescriptorSets()
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
-		vk::WriteDescriptorSet descriptorWrite{};
-		descriptorWrite.dstSet = descriptorSets[i];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pBufferInfo = &bufferInfo;
+		vk::DescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		imageInfo.imageView = textureImageView;
+		imageInfo.sampler = textureSampler;
 
-		device.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+		vk::WriteDescriptorSet uniformDescriptorWrite{};
+		uniformDescriptorWrite.dstSet = descriptorSets[i];
+		uniformDescriptorWrite.dstBinding = 0;
+		uniformDescriptorWrite.dstArrayElement = 0;
+		uniformDescriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+		uniformDescriptorWrite.descriptorCount = 1;
+		uniformDescriptorWrite.pBufferInfo = &bufferInfo;
+
+		vk::WriteDescriptorSet samplerDescriptorWrite{};
+		samplerDescriptorWrite.dstSet = descriptorSets[i];
+		samplerDescriptorWrite.dstBinding = 1;
+		samplerDescriptorWrite.dstArrayElement = 0;
+		samplerDescriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+		samplerDescriptorWrite.descriptorCount = 1;
+		samplerDescriptorWrite.pImageInfo = &imageInfo;
+
+		std::array<vk::WriteDescriptorSet, 2> descriptorWrites{ uniformDescriptorWrite, samplerDescriptorWrite };
+
+		device.updateDescriptorSets(descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 }
 
