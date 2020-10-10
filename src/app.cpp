@@ -99,9 +99,9 @@ void App::initVK()
 	createRenderPass();
 	createDescriptorSetLayout();
 	createGraphicsPipeline();
-	createFramebuffers();
 	createCommandPool();
 	createDepthResources();
+	createFramebuffers();
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
@@ -397,6 +397,7 @@ void App::recreateSwapChain()
 	createImageViews();
 	createRenderPass();
 	createGraphicsPipeline();
+	createDepthResources();
 	createFramebuffers();
 	createUniformBuffers();
 	createDescriptorPool();
@@ -406,6 +407,10 @@ void App::recreateSwapChain()
 
 void App::cleanupSwapChain()
 {
+	device.destroyImageView(depthImageView);
+	device.destroyImage(depthImage);
+	device.freeMemory(depthImageMemory);
+
 	for (auto const& framebuffer : swapChainFramebuffers) {
 		device.destroyFramebuffer(framebuffer);
 	}
@@ -512,14 +517,29 @@ void App::createRenderPass()
 	colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
 	colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
+	vk::AttachmentDescription depthAttachment{};
+	depthAttachment.format = findDepthFormat();
+	depthAttachment.samples = vk::SampleCountFlagBits::e1;
+	depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+	depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;		// will not be used after drawing has finished
+	depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+	depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
+	depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
 	vk::AttachmentReference	colorAttachmentRef{};
 	colorAttachmentRef.attachment = 0;	// attachmentDescription index
 	colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
+
+	vk::AttachmentReference depthAttachmentRef{};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 	vk::SubpassDescription subpass{};
 	subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 	vk::SubpassDependency dependency{};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -529,9 +549,11 @@ void App::createRenderPass()
 	dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
 
+	std::array<vk::AttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+
 	vk::RenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
@@ -633,6 +655,17 @@ void App::createGraphicsPipeline()
 	multisampling.sampleShadingEnable = VK_FALSE;
 	multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
 
+	vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+	depthStencil.depthTestEnable = VK_TRUE;
+	depthStencil.depthWriteEnable = VK_TRUE;
+	depthStencil.depthCompareOp = vk::CompareOp::eLess;
+	depthStencil.depthBoundsTestEnable = VK_FALSE;
+	depthStencil.minDepthBounds = 0.0f; // Optional
+	depthStencil.maxDepthBounds = 1.0f; // // Optional
+	depthStencil.stencilTestEnable = VK_FALSE;
+	depthStencil.front = {}; // Optional
+	depthStencil.back = {}; // Optional
+
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
 	colorBlendAttachment.blendEnable = VK_FALSE;
@@ -664,7 +697,7 @@ void App::createGraphicsPipeline()
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = nullptr;
 	pipelineInfo.layout = pipelineLayout;
@@ -681,13 +714,11 @@ void App::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 	for (int i = 0; i < swapChainImageViews.size(); i++) {
-		std::vector<vk::ImageView> attachments{
-			swapChainImageViews[i]
-		};
+		std::array<vk::ImageView, 2> attachments{ swapChainImageViews[i], depthImageView };
 
 		vk::FramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.attachmentCount = attachments.size();
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = swapChainExtent.width;
 		framebufferInfo.height = swapChainExtent.height;
@@ -714,6 +745,8 @@ void App::createDepthResources()
 
 	createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
 	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+
+	transitionImageLayout(depthImage, depthFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
 }
 
 void App::createTextureImage()
@@ -1089,15 +1122,17 @@ void App::createCommandBuffers()
 		vk::CommandBufferBeginInfo beginInfo{};
 		beginInfo.flags = {};
 
-		vk::ClearValue clearColor = std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+		std::array<vk::ClearValue, 2> clearValues;
+		clearValues[0].color = std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		vk::RenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.renderPass = renderPass;
 		renderPassInfo.framebuffer = swapChainFramebuffers[i];
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = swapChainExtent;
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearColor;
+		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.pClearValues = clearValues.data();
 
 		commandBuffers[i].begin(beginInfo);
 		commandBuffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
@@ -1176,11 +1211,20 @@ void App::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLay
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = image;
-	barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 	barrier.subresourceRange.baseMipLevel = 0;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount = 1;
+
+	if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+		if (hasStencilComponent(format)) {
+			barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+		}
+	}
+	else {
+		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	}
 
 	vk::PipelineStageFlags sourceStage;
 	vk::PipelineStageFlags destinationStage;
@@ -1198,6 +1242,13 @@ void App::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLay
 
 		sourceStage = vk::PipelineStageFlagBits::eTransfer;
 		destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
+	}
+	else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+		barrier.srcAccessMask = {};
+		barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+
+		sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+		destinationStage = vk::PipelineStageFlagBits::eEarlyFragmentTests;
 	}
 	else {
 		throw std::invalid_argument("unsupported layout transition!");
