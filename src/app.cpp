@@ -44,10 +44,10 @@ App::App(int width, int height) :
 #endif
 
 	vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 	};
 
 	indices = {
@@ -1332,7 +1332,7 @@ std::array<vk::VertexInputAttributeDescription, 3> Vertex::getAttributeDescripti
 	auto& posDesc = attributeDescriptions[0];
 	posDesc.binding = 0;
 	posDesc.location = 0;
-	posDesc.format = vk::Format::eR32G32Sfloat;
+	posDesc.format = vk::Format::eR32G32B32Sfloat;
 	posDesc.offset = offsetof(Vertex, pos);
 
 	auto& colorDesc = attributeDescriptions[1];
