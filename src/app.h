@@ -77,6 +77,7 @@ private:
 	vk::DeviceMemory vertexBufferMemory, indexBufferMemory, textureImageMemory;
 	std::vector<vk::Buffer> uniformBuffers;
 	std::vector<vk::DeviceMemory> uniformBuffersMemory;
+	vk::ImageView textureImageView;
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
 	size_t currentFrame;
@@ -109,6 +110,7 @@ private:
 	void recreateSwapChain();
 	void cleanupSwapChain();
 	void createSwapChain();
+	vk::ImageView createImageView(vk::Image image, vk::Format format);
 	void createImageViews();
 	void createRenderPass();
 	void createDescriptorSetLayout();
@@ -116,6 +118,7 @@ private:
 	void createFramebuffers();
 	void createCommandPool();
 	void createTextureImage();
+	void createTextureImageView();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
 	void createVertexBuffer();

@@ -97,6 +97,7 @@ void App::initVK()
 	createFramebuffers();
 	createCommandPool();
 	createTextureImage();
+	createTextureImageView();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -464,26 +465,30 @@ void App::createSwapChain()
 	swapChainExtent = extent;
 }
 
+vk::ImageView App::createImageView(vk::Image image, vk::Format format)
+{
+	vk::ImageViewCreateInfo createInfo{};
+	createInfo.image = image;
+	createInfo.viewType = vk::ImageViewType::e2D;
+	createInfo.format = format;
+	createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+	createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+	createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	createInfo.subresourceRange.baseMipLevel = 0;
+	createInfo.subresourceRange.levelCount = 1;
+	createInfo.subresourceRange.baseArrayLayer = 0;
+	createInfo.subresourceRange.layerCount = 1;
+
+	return device.createImageView(createInfo);
+}
+
 void App::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 	for (int i = 0; i < swapChainImages.size(); i++) {
-		vk::ImageViewCreateInfo createInfo{};
-		createInfo.image = swapChainImages[i];
-		createInfo.viewType = vk::ImageViewType::e2D;
-		createInfo.format = swapChainImageFormat;
-		createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-		createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-		createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-		createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-		createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = 1;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-
-		auto imageView = device.createImageView(createInfo);
-		swapChainImageViews[i] = imageView;
+		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
 	}
 }
 
@@ -722,6 +727,11 @@ void App::createTextureImage()
 
 	device.destroyBuffer(stagingBuffer);
 	device.freeMemory(stagingBufferMemory);
+}
+
+void App::createTextureImageView()
+{
+	textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
 }
 
 void App::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
@@ -1203,6 +1213,7 @@ void App::cleanup()
 {
 	cleanupSwapChain();
 
+	device.destroyImageView(textureImageView);
 	device.destroyImage(textureImage);
 	device.freeMemory(textureImageMemory);
 
