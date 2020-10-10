@@ -78,6 +78,7 @@ private:
 	std::vector<vk::Buffer> uniformBuffers;
 	std::vector<vk::DeviceMemory> uniformBuffersMemory;
 	vk::ImageView textureImageView;
+	vk::Sampler textureSampler;
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
 	size_t currentFrame;
@@ -119,6 +120,7 @@ private:
 	void createCommandPool();
 	void createTextureImage();
 	void createTextureImageView();
+	void createTextureSampler();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
 	void createVertexBuffer();

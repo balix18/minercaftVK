@@ -98,6 +98,7 @@ void App::initVK()
 	createCommandPool();
 	createTextureImage();
 	createTextureImageView();
+	createTextureSampler();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -734,6 +735,28 @@ void App::createTextureImageView()
 	textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
 }
 
+void App::createTextureSampler()
+{
+	vk::SamplerCreateInfo samplerInfo{};
+	samplerInfo.magFilter = vk::Filter::eLinear;
+	samplerInfo.minFilter = vk::Filter::eLinear;
+	samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = 16.0f;
+	samplerInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = vk::CompareOp::eAlways;
+	samplerInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 0.0f;
+
+	textureSampler = device.createSampler(samplerInfo);
+}
+
 void App::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
 {
 	vk::BufferCreateInfo bufferInfo{};
@@ -1213,6 +1236,7 @@ void App::cleanup()
 {
 	cleanupSwapChain();
 
+	device.destroySampler(textureSampler);
 	device.destroyImageView(textureImageView);
 	device.destroyImage(textureImage);
 	device.freeMemory(textureImageMemory);
