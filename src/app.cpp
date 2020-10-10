@@ -42,23 +42,6 @@ App::App(int width, int height) :
 #ifdef _DEBUG
 	enableValidationLayers = true;
 #endif
-
-	vertices = {
-		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-	};
-
-	indices = {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
-	};
 }
 
 void App::run()
@@ -105,6 +88,7 @@ void App::initVK()
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
+	loadModel();
 	createVertexBuffer();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -752,7 +736,7 @@ void App::createDepthResources()
 void App::createTextureImage()
 {
 	std::string projectPath = PROJECT_SOURCE_DIR;
-	std::string fileName = projectPath + "textures/texture.jpg";
+	std::string fileName = projectPath + "textures/viking_room.png";
 
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -861,6 +845,43 @@ void App::createImage(uint32_t width, uint32_t height, vk::Format format, vk::Im
 
 	imageMemory = device.allocateMemory(allocInfo);
 	device.bindImageMemory(image, imageMemory, 0);
+}
+
+void App::loadModel()
+{
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	std::string projectPath = PROJECT_SOURCE_DIR;
+	auto modelFileName = projectPath + "textures/viking_room.obj";
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFileName.c_str())) {
+		throw std::runtime_error(warn + err);
+	}
+
+	for (auto const& shape : shapes) {
+		for (auto const& index : shape.mesh.indices) {
+			Vertex vertex{};
+
+			vertex.pos = {
+				attrib.vertices[3 * index.vertex_index + 0],
+				attrib.vertices[3 * index.vertex_index + 1],
+				attrib.vertices[3 * index.vertex_index + 2]
+			};
+
+			vertex.texCoord = {
+				attrib.texcoords[2 * index.texcoord_index + 0],
+				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+			};
+
+			vertex.color = { 1.0f, 1.0f, 1.0f };
+
+			vertices.push_back(vertex);
+			indices.push_back(indices.size());
+		}
+	}
 }
 
 void App::createVertexBuffer()
@@ -1190,7 +1211,7 @@ void App::updateUniformBuffer(uint32_t currentImage)
 	// create the mvp matrices
 	UniformBufferObject ubo{};
 	glm::mat4 identity{ 1.0f };
-	ubo.model = glm::rotate(identity, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = glm::rotate(identity, time * glm::radians(22.5f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.proj = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
