@@ -47,12 +47,17 @@ App::App(int width, int height) :
 		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
 		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+
+		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 	};
 
 	indices = {
-		0, 1, 2, 
-		2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
 	};
 }
 
@@ -96,6 +101,7 @@ void App::initVK()
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
+	createDepthResources();
 	createTextureImage();
 	createTextureImageView();
 	createTextureSampler();
@@ -467,7 +473,7 @@ void App::createSwapChain()
 	swapChainExtent = extent;
 }
 
-vk::ImageView App::createImageView(vk::Image image, vk::Format format)
+vk::ImageView App::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags)
 {
 	vk::ImageViewCreateInfo createInfo{};
 	createInfo.image = image;
@@ -477,7 +483,7 @@ vk::ImageView App::createImageView(vk::Image image, vk::Format format)
 	createInfo.components.g = vk::ComponentSwizzle::eIdentity;
 	createInfo.components.b = vk::ComponentSwizzle::eIdentity;
 	createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-	createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+	createInfo.subresourceRange.aspectMask = aspectFlags;
 	createInfo.subresourceRange.baseMipLevel = 0;
 	createInfo.subresourceRange.levelCount = 1;
 	createInfo.subresourceRange.baseArrayLayer = 0;
@@ -490,7 +496,7 @@ void App::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 	for (int i = 0; i < swapChainImages.size(); i++) {
-		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
+		swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
 	}
 }
 
@@ -702,6 +708,14 @@ void App::createCommandPool()
 	commandPool = device.createCommandPool(poolInfo);
 }
 
+void App::createDepthResources()
+{
+	vk::Format depthFormat = findDepthFormat();
+
+	createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
+	depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+}
+
 void App::createTextureImage()
 {
 	std::string projectPath = PROJECT_SOURCE_DIR;
@@ -742,7 +756,7 @@ void App::createTextureImage()
 
 void App::createTextureImageView()
 {
-	textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
+	textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 }
 
 void App::createTextureSampler()
@@ -1030,6 +1044,34 @@ uint32_t App::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags proper
 	}
 
 	throw std::runtime_error("failed to find suitable memory type!");
+}
+
+vk::Format App::findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+{
+	for (vk::Format format : candidates) {
+		auto formatProps = physicalDevice.getFormatProperties(format);
+
+		// chech format based on tiling
+		if (tiling == vk::ImageTiling::eLinear && (formatProps.linearTilingFeatures & features) == features) {
+			return format;
+		}
+		else if (tiling == vk::ImageTiling::eOptimal && (formatProps.optimalTilingFeatures & features) == features) {
+			return format;
+		}
+	}
+
+	throw std::runtime_error("failed to find supported format!");
+}
+
+vk::Format App::findDepthFormat()
+{
+	std::vector<vk::Format> candidates = { vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint };
+	return findSupportedFormat(candidates, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+bool App::hasStencilComponent(vk::Format format)
+{
+	return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
 void App::createCommandBuffers()

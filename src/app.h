@@ -80,6 +80,9 @@ private:
 	std::vector<vk::DeviceMemory> uniformBuffersMemory;
 	vk::ImageView textureImageView;
 	vk::Sampler textureSampler;
+	vk::Image depthImage;
+	vk::DeviceMemory depthImageMemory;
+	vk::ImageView depthImageView;
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
 	size_t currentFrame;
@@ -112,13 +115,14 @@ private:
 	void recreateSwapChain();
 	void cleanupSwapChain();
 	void createSwapChain();
-	vk::ImageView createImageView(vk::Image image, vk::Format format);
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
 	void createImageViews();
 	void createRenderPass();
 	void createDescriptorSetLayout();
 	void createGraphicsPipeline();
 	void createFramebuffers();
 	void createCommandPool();
+	void createDepthResources();
 	void createTextureImage();
 	void createTextureImageView();
 	void createTextureSampler();
@@ -134,6 +138,9 @@ private:
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 	void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height);
 	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+	vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+	vk::Format findDepthFormat();
+	bool hasStencilComponent(vk::Format format);
 	void createCommandBuffers();
 	void createSyncObjects();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
