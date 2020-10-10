@@ -689,7 +689,7 @@ void App::createVertexBuffer()
 	// map staging buffer to cpu, and fill it
 	auto dataPtr = device.mapMemory(stagingBufferMemory, 0, bufferSize);
 	std::memcpy(dataPtr, vertices.data(), static_cast<size_t>(bufferSize));
-	vkUnmapMemory(device, stagingBufferMemory);
+	device.unmapMemory(stagingBufferMemory);
 
 	// vertex buffer
 	auto bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer;
@@ -718,7 +718,7 @@ void App::createIndexBuffer()
 	// map staging buffer to cpu, and fill it
 	auto dataPtr = device.mapMemory(stagingBufferMemory, 0, bufferSize);
 	std::memcpy(dataPtr, indices.data(), static_cast<size_t>(bufferSize));
-	vkUnmapMemory(device, stagingBufferMemory);
+	device.unmapMemory(stagingBufferMemory);
 
 	// index buffer
 	auto bufferUsage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
