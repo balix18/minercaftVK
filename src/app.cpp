@@ -44,10 +44,10 @@ App::App(int width, int height) :
 #endif
 
 	vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
 	};
 
 	indices = {
@@ -1325,19 +1325,27 @@ vk::VertexInputBindingDescription Vertex::getBindingDescription()
 	return bindingDescription;
 }
 
-std::array<vk::VertexInputAttributeDescription, 2> Vertex::getAttributeDescriptions()
+std::array<vk::VertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions()
 {
-	std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+	std::array<vk::VertexInputAttributeDescription, 3> attributeDescriptions{};
 
-	attributeDescriptions[0].binding = 0;
-	attributeDescriptions[0].location = 0;
-	attributeDescriptions[0].format = vk::Format::eR32G32Sfloat;
-	attributeDescriptions[0].offset = offsetof(Vertex, pos);
+	auto& posDesc = attributeDescriptions[0];
+	posDesc.binding = 0;
+	posDesc.location = 0;
+	posDesc.format = vk::Format::eR32G32Sfloat;
+	posDesc.offset = offsetof(Vertex, pos);
 
-	attributeDescriptions[1].binding = 0;
-	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
-	attributeDescriptions[1].offset = offsetof(Vertex, color);
+	auto& colorDesc = attributeDescriptions[1];
+	colorDesc.binding = 0;
+	colorDesc.location = 1;
+	colorDesc.format = vk::Format::eR32G32B32Sfloat;
+	colorDesc.offset = offsetof(Vertex, color);
+
+	auto& textCoordDesc = attributeDescriptions[2];
+	textCoordDesc.binding = 0;
+	textCoordDesc.location = 2;
+	textCoordDesc.format = vk::Format::eR32G32Sfloat;
+	textCoordDesc.offset = offsetof(Vertex, texCoord);
 
 	return attributeDescriptions;
 }
