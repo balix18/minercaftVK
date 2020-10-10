@@ -25,6 +25,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <boost/functional/hash.hpp>
+
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 

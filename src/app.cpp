@@ -1479,7 +1479,9 @@ bool Vertex::operator==(const Vertex& other) const
 
 std::size_t Vertex::Hasher::operator()(Vertex const& vertex) const noexcept
 {
-	return ((std::hash<glm::vec3>()(vertex.pos) ^
-		(std::hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-		(std::hash<glm::vec2>()(vertex.texCoord) << 1);
+	std::size_t seed = 0;
+	boost::hash_combine(seed, std::hash<glm::vec3>()(vertex.pos));
+	boost::hash_combine(seed, std::hash<glm::vec3>()(vertex.color));
+	boost::hash_combine(seed, std::hash<glm::vec2>()(vertex.texCoord));
+	return seed;
 }
