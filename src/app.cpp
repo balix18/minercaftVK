@@ -894,7 +894,7 @@ void App::createVertexBuffer()
 
 void App::createIndexBuffer()
 {
-	vk::DeviceSize bufferSize = sizeof(Vertex) * indices.size();
+	vk::DeviceSize bufferSize = sizeof(uint32_t) * indices.size();
 
 	// staging buffer
 	vk::Buffer stagingBuffer;
