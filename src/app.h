@@ -24,6 +24,13 @@ struct Vertex
 	static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions();
 };
 
+struct UniformBufferObject
+{
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
+
 struct App
 {
 	int width, height;
@@ -55,6 +62,7 @@ private:
 	vk::Extent2D swapChainExtent;
 	std::vector<vk::ImageView> swapChainImageViews;
 	vk::RenderPass renderPass;
+	vk::DescriptorSetLayout descriptorSetLayout;
 	vk::PipelineLayout pipelineLayout;
 	vk::Pipeline graphicsPipeline;
 	std::vector<vk::Framebuffer> swapChainFramebuffers;
@@ -66,6 +74,10 @@ private:
 	std::vector<uint32_t> indices;
 	vk::Buffer vertexBuffer, indexBuffer;
 	vk::DeviceMemory vertexBufferMemory, indexBufferMemory;
+	std::vector<vk::Buffer> uniformBuffers;
+	std::vector<vk::DeviceMemory> uniformBuffersMemory;
+	vk::DescriptorPool descriptorPool;
+	std::vector<vk::DescriptorSet> descriptorSets;
 	size_t currentFrame;
 	bool framebufferResized;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
@@ -98,17 +110,22 @@ private:
 	void createSwapChain();
 	void createImageViews();
 	void createRenderPass();
+	void createDescriptorSetLayout();
 	void createGraphicsPipeline();
 	void createFramebuffers();
 	void createCommandPool();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
 	void createVertexBuffer();
 	void createIndexBuffer();
+	void createUniformBuffers();
+	void createDescriptorPool();
+	void createDescriptorSets();
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 	uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 	void createCommandBuffers();
 	void createSyncObjects();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
+	void updateUniformBuffer(uint32_t currentImage);
 	void mainLoop();
 	void drawFrame();
 	void cleanup();

@@ -92,11 +92,15 @@ void App::initVK()
 	createSwapChain();
 	createImageViews();
 	createRenderPass();
+	createDescriptorSetLayout();
 	createGraphicsPipeline();
 	createFramebuffers();
 	createCommandPool();
 	createVertexBuffer();
 	createIndexBuffer();
+	createUniformBuffers();
+	createDescriptorPool();
+	createDescriptorSets();
 	createCommandBuffers();
 	createSyncObjects();
 }
@@ -384,6 +388,9 @@ void App::recreateSwapChain()
 	createRenderPass();
 	createGraphicsPipeline();
 	createFramebuffers();
+	createUniformBuffers();
+	createDescriptorPool();
+	createDescriptorSets();
 	createCommandBuffers();
 }
 
@@ -404,6 +411,13 @@ void App::cleanupSwapChain()
 	}
 
 	device.destroySwapchainKHR(swapChain);
+
+	for (auto i = 0; i < swapChainImages.size(); i++) {
+		device.destroyBuffer(uniformBuffers[i]);
+		device.freeMemory(uniformBuffersMemory[i]);
+	}
+
+	device.destroyDescriptorPool(descriptorPool);
 }
 
 void App::createSwapChain()
@@ -512,6 +526,22 @@ void App::createRenderPass()
 	renderPass = device.createRenderPass(renderPassInfo);
 }
 
+void App::createDescriptorSetLayout()
+{
+	vk::DescriptorSetLayoutBinding uboLayoutBinding{};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+	uboLayoutBinding.pImmutableSamplers = nullptr;
+
+	vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.bindingCount = 1;
+	layoutInfo.pBindings = &uboLayoutBinding;
+
+	descriptorSetLayout = device.createDescriptorSetLayout(layoutInfo);
+}
+
 void App::createGraphicsPipeline()
 {
 	std::string projectPath = PROJECT_SOURCE_DIR;
@@ -573,7 +603,7 @@ void App::createGraphicsPipeline()
 	rasterizer.polygonMode = vk::PolygonMode::eFill;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-	rasterizer.frontFace = vk::FrontFace::eClockwise;
+	rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 	rasterizer.depthBiasEnable = VK_FALSE;
 
 	vk::PipelineMultisampleStateCreateInfo multisampling{};
@@ -596,8 +626,8 @@ void App::createGraphicsPipeline()
 	colorBlending.pAttachments = &colorBlendAttachment;
 
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -733,6 +763,63 @@ void App::createIndexBuffer()
 	device.freeMemory(stagingBufferMemory);
 }
 
+void App::createUniformBuffers()
+{
+	vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+
+	uniformBuffers.resize(swapChainImages.size());
+	uniformBuffersMemory.resize(swapChainImages.size());
+
+	for (auto i = 0; i < swapChainImages.size(); i++) {
+		auto usage = vk::BufferUsageFlagBits::eUniformBuffer;
+		auto memoryProps = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+		createBuffer(bufferSize, usage, memoryProps, uniformBuffers[i], uniformBuffersMemory[i]);
+	}
+}
+
+void App::createDescriptorPool()
+{
+	vk::DescriptorPoolSize poolSize{};
+	poolSize.type = vk::DescriptorType::eUniformBuffer;
+	poolSize.descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+
+	vk::DescriptorPoolCreateInfo poolInfo{};
+	poolInfo.poolSizeCount = 1;
+	poolInfo.pPoolSizes = &poolSize;
+	poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+
+	descriptorPool = device.createDescriptorPool(poolInfo);
+}
+
+void App::createDescriptorSets()
+{
+	std::vector<vk::DescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+
+	vk::DescriptorSetAllocateInfo allocInfo{};
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+	allocInfo.pSetLayouts = layouts.data();
+
+	descriptorSets = device.allocateDescriptorSets(allocInfo);
+
+	for (auto i = 0; i < swapChainImages.size(); i++) {
+		vk::DescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObject);
+
+		vk::WriteDescriptorSet descriptorWrite{};
+		descriptorWrite.dstSet = descriptorSets[i];
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		device.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
+	}
+}
+
 void App::copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
 	vk::CommandBufferAllocateInfo allocInfo{};
@@ -818,7 +905,8 @@ void App::createCommandBuffers()
 		VkDeviceSize offsets[] = { 0 };
 		commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
 		commandBuffers[i].bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint32);
-
+		commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+		
 		commandBuffers[i].drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 		commandBuffers[i].endRenderPass();
@@ -853,6 +941,27 @@ vk::ShaderModule App::createShaderModule(std::vector<char> const& code)
 	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 	return device.createShaderModule(createInfo);
+}
+
+void App::updateUniformBuffer(uint32_t currentImage)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	// create the mvp matrices
+	UniformBufferObject ubo{};
+	glm::mat4 identity{ 1.0f };
+	ubo.model = glm::rotate(identity, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+
+	// map uniform buffer to cpu, and fill it
+	auto dataPtr = device.mapMemory(uniformBuffersMemory[currentImage], 0, sizeof(ubo));
+	std::memcpy(dataPtr, &ubo, sizeof(ubo));
+	device.unmapMemory(uniformBuffersMemory[currentImage]);
 }
 
 void App::mainLoop()
@@ -899,6 +1008,8 @@ void App::drawFrame()
 		device.waitForFences(1, &imagesInFlight[imageIndex], VK_TRUE, noTimeout);
 	}
 	imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+	updateUniformBuffer(imageIndex);
 
 	std::vector<vk::Semaphore> waitSemaphores = { imageAvailableSemaphores[currentFrame] };
 	std::vector<vk::Semaphore> signalSemaphores = { renderFinishedSemaphores[currentFrame] };
@@ -948,6 +1059,8 @@ void App::drawFrame()
 void App::cleanup()
 {
 	cleanupSwapChain();
+
+	device.destroyDescriptorSetLayout(descriptorSetLayout);
 
 	device.destroyBuffer(indexBuffer);
 	device.freeMemory(indexBufferMemory);
