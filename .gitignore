@@ -4,3 +4,4 @@ out/
 CMakeSettings.json
 
 shaders/*.spv
+textures/*
