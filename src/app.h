@@ -23,6 +23,13 @@ struct Vertex
 
 	static vk::VertexInputBindingDescription getBindingDescription();
 	static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions();
+
+	bool operator==(const Vertex& other) const;
+
+	struct Hasher
+	{
+		std::size_t operator()(Vertex const& vertex) const noexcept;
+	};
 };
 
 struct UniformBufferObject

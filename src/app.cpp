@@ -861,6 +861,8 @@ void App::loadModel()
 		throw std::runtime_error(warn + err);
 	}
 
+	std::unordered_map<Vertex, uint32_t, Vertex::Hasher> uniqueVertices;
+
 	for (auto const& shape : shapes) {
 		for (auto const& index : shape.mesh.indices) {
 			Vertex vertex{};
@@ -878,8 +880,12 @@ void App::loadModel()
 
 			vertex.color = { 1.0f, 1.0f, 1.0f };
 
-			vertices.push_back(vertex);
-			indices.push_back(indices.size());
+			if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
+				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+				vertices.push_back(vertex);
+			}
+
+			indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 }
@@ -1462,4 +1468,18 @@ std::array<vk::VertexInputAttributeDescription, 3> Vertex::getAttributeDescripti
 	textCoordDesc.offset = offsetof(Vertex, texCoord);
 
 	return attributeDescriptions;
+}
+
+bool Vertex::operator==(const Vertex& other) const
+{
+	return pos == other.pos 
+		&& color == other.color 
+		&& texCoord == other.texCoord;
+}
+
+std::size_t Vertex::Hasher::operator()(Vertex const& vertex) const noexcept
+{
+	return ((std::hash<glm::vec3>()(vertex.pos) ^
+		(std::hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+		(std::hash<glm::vec2>()(vertex.texCoord) << 1);
 }
