@@ -11,6 +11,11 @@ find_package(fmt CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb REQUIRED)
+find_package(Boost REQUIRED)
+
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${Boost_INCLUDE_DIRS}
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     glfw
@@ -18,6 +23,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     fmt::fmt
     tinyobjloader::tinyobjloader
     Vulkan::Vulkan
+    ${Boost_LIBRARIES}
 )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
