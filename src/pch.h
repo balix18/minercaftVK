@@ -30,5 +30,9 @@
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 
+#include <EZPZLogger/logger.h>
+
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+
+using namespace ezpz;

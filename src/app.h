@@ -106,6 +106,7 @@ private:
 	std::vector<const char*> validationLayers;
 	std::vector<const char*> deviceExtensions;
 
+	void initLogger();
 	void initWindow();
 	void initVK();
 	void createInstance();

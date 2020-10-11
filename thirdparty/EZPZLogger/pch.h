@@ -1,0 +1,32 @@
+#pragma once
+
+#include <vector>
+#include <array>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <deque>
+#include <list>
+#include <string>
+#include <cstring>
+#include <sstream>
+#include <fstream>
+#include <iostream>
+#include <cmath>
+#include <cassert>
+#include <random>
+#include <algorithm>
+#include <memory>
+#include <future>
+#include <variant>
+#include <functional>
+#include <iosfwd>
+#include <thread>
+#include <chrono>
+#include <stdexcept>
+#include <mutex>
+#include <condition_variable>
+#include <filesystem>
+
+#include <fmt/format.h>

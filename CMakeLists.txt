@@ -11,10 +11,13 @@ if (MSVC)
         /wd4201 # nameless struct/union
         /wd4324 # structure was padded due to __declspec(align())
         /wd4100 # unreferenced formal parameter
+        /wd4458 # hides class member
     )
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()
+
+add_subdirectory(thirdparty/EZPZLogger)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -26,6 +29,7 @@ find_package(Boost REQUIRED)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${Boost_INCLUDE_DIRS}
+    thirdparty
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -35,6 +39,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     tinyobjloader::tinyobjloader
     Vulkan::Vulkan
     ${Boost_LIBRARIES}
+    EZPZLogger
 )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")

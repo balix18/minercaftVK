@@ -45,6 +45,7 @@ App::App(WindowSize windowSize) :
 
 void App::run()
 {
+	initLogger();
 	initWindow();
 	initVK();
 	mainLoop();
@@ -54,6 +55,14 @@ void App::run()
 void App::framebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height)
 {
 	framebufferResized = true;
+}
+
+void App::initLogger()
+{
+	std::string projectSourceDir = PROJECT_SOURCE_DIR;
+	std::cerr << theLogger.Init(projectSourceDir + "logger.ini");
+
+	theLogger.LogInfo("Logger initialized");
 }
 
 void App::initWindow()
@@ -126,15 +135,16 @@ void App::createInstance()
 	}
 
 	instance = vk::createInstance(createInfo);
-
 	dispatcher = std::make_unique<vk::DispatchLoaderDynamic>(instance, vkGetInstanceProcAddr);
 
 	auto extensionProps = vk::enumerateInstanceExtensionProperties();
 
-	fmt::print("avaliable extensions:\n");
+	std::stringstream ssExt;
+	ssExt << fmt::format("Avaliable extensions:\n");
 	for (auto const& extensionProp : extensionProps) {
-		fmt::print("  - {}\n", extensionProp.extensionName);
+		ssExt << fmt::format("  - {}\n", extensionProp.extensionName);
 	}
+	theLogger.LogInfo(ssExt.str());
 
 	// check if all required extensions are available
 	for (auto const& ext : reqExtensions) {
@@ -240,7 +250,7 @@ void App::pickPhysicalDevice()
 	}
 
 	auto deviceName = physicalDevice.getProperties().deviceName;
-	fmt::print("Using {} as physical device\n", deviceName);
+	theLogger.LogInfo("Using {} as physical device\n", deviceName);
 }
 
 bool App::isDeviceSuitable(vk::PhysicalDevice const& targetPhysicalDevice)
