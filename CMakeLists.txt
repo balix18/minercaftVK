@@ -6,7 +6,12 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/")
 
 if (MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W3)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        /W4     # turn on level 4 warnings
+        /wd4201 # nameless struct/union
+        /wd4324 # structure was padded due to __declspec(align())
+        /wd4100 # unreferenced formal parameter
+    )
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()

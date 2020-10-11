@@ -13,9 +13,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 	return VK_FALSE;
 }
 
-App::App(int width, int height) : 
-	width{ width },
-	height{ height },
+App::App(WindowSize windowSize) :
+	windowSize{ windowSize },
 	instance{ nullptr },
 	physicalDevice{ nullptr },
 	device{ nullptr },
@@ -52,7 +51,7 @@ void App::run()
 	cleanup();
 }
 
-void App::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+void App::framebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height)
 {
 	framebufferResized = true;
 }
@@ -62,7 +61,7 @@ void App::initWindow()
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-	window.reset(glfwCreateWindow(width, height, "minercaftVK-App", nullptr, nullptr));
+	window.reset(glfwCreateWindow(windowSize.width, windowSize.height, "minercaftVK-App", nullptr, nullptr));
 	glfwSetWindowUserPointer(window.get(), this);
 	glfwSetFramebufferSizeCallback(window.get(), [](GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
@@ -190,11 +189,11 @@ std::vector<const char*> App::getRequiredExtensions()
 	return extensions;
 }
 
-bool App::checkValidationLayerSupport(std::vector<const char*> const& validationLayers)
+bool App::checkValidationLayerSupport(std::vector<const char*> const& layers)
 {
 	auto availableLayers = vk::enumerateInstanceLayerProperties();
 
-	for (auto const& layer : validationLayers) {
+	for (auto const& layer : layers) {
 		auto resIt = std::find_if(availableLayers.begin(), availableLayers.end(), [&](vk::LayerProperties const& p) {
 			return std::strcmp(p.layerName, layer) == 0;
 		});
@@ -206,12 +205,12 @@ bool App::checkValidationLayerSupport(std::vector<const char*> const& validation
 	return true;
 }
 
-bool App::checkDeviceExtensionSupport(vk::PhysicalDevice const& device, std::vector<const char*> const& deviceExtensions)
+bool App::checkDeviceExtensionSupport(vk::PhysicalDevice const& targetPhysicalDevice, std::vector<const char*> const& requiredDeviceExtensions)
 {
-	auto availableExtensions = device.enumerateDeviceExtensionProperties();
+	auto availableExtensions = targetPhysicalDevice.enumerateDeviceExtensionProperties();
 
 	std::vector<std::string> tmp;
-	std::set<const char*> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+	std::set<const char*> requiredExtensions(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end());
 	for (auto const& ext : availableExtensions) {
 		tmp.push_back(std::string{ ext.extensionName });
 		auto resIt = std::find_if(requiredExtensions.begin(), requiredExtensions.end(), [&](const char* p) {
@@ -229,9 +228,9 @@ void App::pickPhysicalDevice()
 {
 	auto physicalDevices = instance.enumeratePhysicalDevices();
 
-	for (auto const& device : physicalDevices) {
-		if (isDeviceSuitable(device)) {
-			physicalDevice = device;
+	for (auto const& currentPhysicalDevice : physicalDevices) {
+		if (isDeviceSuitable(currentPhysicalDevice)) {
+			physicalDevice = currentPhysicalDevice;
 			break;
 		}
 	}
@@ -244,50 +243,50 @@ void App::pickPhysicalDevice()
 	fmt::print("Using {} as physical device\n", deviceName);
 }
 
-bool App::isDeviceSuitable(vk::PhysicalDevice const& device)
+bool App::isDeviceSuitable(vk::PhysicalDevice const& targetPhysicalDevice)
 {
-	auto deviceProps = device.getProperties();
-	auto deviceFeatures = device.getFeatures();
-	auto indices = findQueueFamilies(device);
-	auto extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
+	auto deviceProps = targetPhysicalDevice.getProperties();
+	auto deviceFeatures = targetPhysicalDevice.getFeatures();
+	auto familyIndices = findQueueFamilies(targetPhysicalDevice);
+	auto extensionsSupported = checkDeviceExtensionSupport(targetPhysicalDevice, deviceExtensions);
 
 	bool swapChainAdequate = false;
 	if (extensionsSupported) {
-		auto swapChainSupport = querySwapChainSupport(device);
+		auto swapChainSupport = querySwapChainSupport(targetPhysicalDevice);
 		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
 	return deviceProps.deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-		&& indices.isComplete()
+		&& familyIndices.isComplete()
 		&& extensionsSupported
 		&& swapChainAdequate
 		&& deviceFeatures.samplerAnisotropy;
 }
 
-QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& device)
+QueueFamilyIndices App::findQueueFamilies(vk::PhysicalDevice const& targetPhysicalDevice)
 {
-	QueueFamilyIndices indices;
+	QueueFamilyIndices familyIndices;
 
 	int idx = 0;
-	auto queueFamilies = device.getQueueFamilyProperties();
+	auto queueFamilies = targetPhysicalDevice.getQueueFamilyProperties();
 	for (auto const& queueFamily : queueFamilies) {
 		if (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-			indices.graphicsFamily = idx;
+			familyIndices.graphicsFamily = idx;
 		}
 
-		auto presentSupport = device.getSurfaceSupportKHR(idx, surface);
+		auto presentSupport = targetPhysicalDevice.getSurfaceSupportKHR(idx, surface);
 		if (presentSupport) {
-			indices.presentFamily = idx;
+			familyIndices.presentFamily = idx;
 		}
 
-		if (indices.isComplete()) {
+		if (familyIndices.isComplete()) {
 			break;
 		}
 
 		idx++;
 	}
 
-	return indices;
+	return familyIndices;
 }
 
 void App::createLogicalDevice()
@@ -321,12 +320,12 @@ void App::createLogicalDevice()
 	presentQueue = device.getQueue(familyIndices.presentFamily.value(), queueIndex);
 }
 
-SwapChainSupportDetails App::querySwapChainSupport(vk::PhysicalDevice const& device)
+SwapChainSupportDetails App::querySwapChainSupport(vk::PhysicalDevice const& targetPhysicalDevice)
 {
 	SwapChainSupportDetails details;
-	details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
-	details.formats = device.getSurfaceFormatsKHR(surface);
-	details.presentModes = device.getSurfacePresentModesKHR(surface);
+	details.capabilities = targetPhysicalDevice.getSurfaceCapabilitiesKHR(surface);
+	details.formats = targetPhysicalDevice.getSurfaceFormatsKHR(surface);
+	details.presentModes = targetPhysicalDevice.getSurfacePresentModesKHR(surface);
 
 	return details;
 }

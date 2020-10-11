@@ -41,7 +41,10 @@ struct UniformBufferObject
 
 struct App
 {
-	int width, height;
+	struct WindowSize
+	{
+		int width, height;
+	} windowSize;
 
 	struct GLFWwindowDeleter
 	{
@@ -50,7 +53,7 @@ struct App
 
 	std::unique_ptr<GLFWwindow, GLFWwindowDeleter> window;
 
-	App(int width, int height);
+	App(WindowSize windowSize);
 	~App() = default;
 
 	void run();
@@ -110,12 +113,12 @@ private:
 	void createSurface();
 	std::vector<const char*> getRequiredExtensions();
 	bool checkValidationLayerSupport(std::vector<const char*> const& validationLayers);
-	bool checkDeviceExtensionSupport(vk::PhysicalDevice const& device, std::vector<const char*> const& deviceExtensions);
+	bool checkDeviceExtensionSupport(vk::PhysicalDevice const& targetPhysicalDevice, std::vector<const char*> const& requiredDeviceExtensions);
 	void pickPhysicalDevice();
-	bool isDeviceSuitable(vk::PhysicalDevice const& device);
-	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& device);
+	bool isDeviceSuitable(vk::PhysicalDevice const& targetPhysicalDevice);
+	QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice const& targetPhysicalDevice);
 	void createLogicalDevice();
-	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice const& device);
+	SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice const& targetPhysicalDevice);
 	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
 	vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
 	vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
