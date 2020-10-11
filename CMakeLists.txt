@@ -5,6 +5,12 @@ add_executable(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/")
 
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W3)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
+endif()
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)

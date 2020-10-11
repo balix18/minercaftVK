@@ -536,7 +536,7 @@ void App::createRenderPass()
 	std::array<vk::AttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 
 	vk::RenderPassCreateInfo renderPassInfo{};
-	renderPassInfo.attachmentCount = attachments.size();
+	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
@@ -565,7 +565,7 @@ void App::createDescriptorSetLayout()
 	std::array<vk::DescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
 	vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.bindingCount = bindings.size();
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 	layoutInfo.pBindings = bindings.data();
 
 	descriptorSetLayout = device.createDescriptorSetLayout(layoutInfo);
@@ -702,7 +702,7 @@ void App::createFramebuffers()
 
 		vk::FramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.attachmentCount = attachments.size();
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = swapChainExtent.width;
 		framebufferInfo.height = swapChainExtent.height;
@@ -975,7 +975,7 @@ void App::createDescriptorPool()
 	std::array<vk::DescriptorPoolSize, 2> poolSizes{ uniformBufferPool, combinedImageSampler };
 
 	vk::DescriptorPoolCreateInfo poolInfo{};
-	poolInfo.poolSizeCount = poolSizes.size();
+	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
 	poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
 
@@ -1022,7 +1022,7 @@ void App::createDescriptorSets()
 
 		std::array<vk::WriteDescriptorSet, 2> descriptorWrites{ uniformDescriptorWrite, samplerDescriptorWrite };
 
-		device.updateDescriptorSets(descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+		device.updateDescriptorSets(static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 }
 
@@ -1141,7 +1141,7 @@ void App::createCommandBuffers()
 	vk::CommandBufferAllocateInfo allocInfo{};
 	allocInfo.commandPool = commandPool;
 	allocInfo.level = vk::CommandBufferLevel::ePrimary;
-	allocInfo.commandBufferCount = commandBuffers.size();
+	allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
 	commandBuffers = device.allocateCommandBuffers(allocInfo);
 
@@ -1158,7 +1158,7 @@ void App::createCommandBuffers()
 		renderPassInfo.framebuffer = swapChainFramebuffers[i];
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = swapChainExtent;
-		renderPassInfo.clearValueCount = clearValues.size();
+		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
 
 		commandBuffers[i].begin(beginInfo);
