@@ -95,6 +95,10 @@ private:
 	vk::ImageView depthImageView;
 	vk::DescriptorPool descriptorPool;
 	std::vector<vk::DescriptorSet> descriptorSets;
+	vk::SampleCountFlagBits msaaSamples;
+	vk::Image colorImage;
+	vk::DeviceMemory colorImageMemory;
+	vk::ImageView colorImageView;
 	size_t currentFrame;
 	bool framebufferResized;
 	std::unique_ptr<vk::DispatchLoaderDynamic> dispatcher;
@@ -138,13 +142,14 @@ private:
 	void createTextureImageView();
 	void createTextureSampler();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
-	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
+	void createImage(uint32_t width, uint32_t height, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
 	void loadModel();
 	void createVertexBuffer();
 	void createIndexBuffer();
 	void createUniformBuffers();
 	void createDescriptorPool();
 	void createDescriptorSets();
+	void createColorResources();
 	vk::CommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
@@ -158,6 +163,7 @@ private:
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void updateUniformBuffer(uint32_t currentImage);
 	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+	vk::SampleCountFlagBits getMaxUsableSampleCount();
 	void mainLoop();
 	void drawFrame();
 	void cleanup();
