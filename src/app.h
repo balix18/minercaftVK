@@ -84,6 +84,7 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 	vk::Buffer vertexBuffer, indexBuffer;
+	uint32_t mipLevels;
 	vk::Image textureImage;
 	vk::DeviceMemory vertexBufferMemory, indexBufferMemory, textureImageMemory;
 	std::vector<vk::Buffer> uniformBuffers;
@@ -130,7 +131,7 @@ private:
 	void recreateSwapChain();
 	void cleanupSwapChain();
 	void createSwapChain();
-	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+	vk::ImageView createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels);
 	void createImageViews();
 	void createRenderPass();
 	void createDescriptorSetLayout();
@@ -142,7 +143,7 @@ private:
 	void createTextureImageView();
 	void createTextureSampler();
 	void createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
-	void createImage(uint32_t width, uint32_t height, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, vk::SampleCountFlagBits numSamples, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
 	void loadModel();
 	void createVertexBuffer();
 	void createIndexBuffer();
@@ -150,6 +151,7 @@ private:
 	void createDescriptorPool();
 	void createDescriptorSets();
 	void createColorResources();
+	void generateMipmaps(vk::Image image, vk::Format imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 	vk::CommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(vk::CommandBuffer commandBuffer);
 	void copyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
@@ -162,7 +164,7 @@ private:
 	void createSyncObjects();
 	vk::ShaderModule createShaderModule(std::vector<char> const& code);
 	void updateUniformBuffer(uint32_t currentImage);
-	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
+	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
 	vk::SampleCountFlagBits getMaxUsableSampleCount();
 	void mainLoop();
 	void drawFrame();
