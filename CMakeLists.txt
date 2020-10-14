@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.17)
 project(minercaftVK-App)
 
 add_executable(${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/")
 
 if (MSVC)
@@ -12,8 +11,10 @@ if (MSVC)
         /wd4324 # structure was padded due to __declspec(align())
         /wd4100 # unreferenced formal parameter
         /wd4458 # hides class member
+        /std:c++latest
     )
 else()
+    set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()
 
