@@ -81,6 +81,40 @@ namespace ezpz {
         rtrim(s);
     }
 
+    std::string DefaultToString::operator()(LogLevel logLevel)
+    {
+        switch (logLevel)
+        {
+            case LogLevel::DEBUG:
+                return "DEBUG";
+            case LogLevel::INFO:
+                return "INFO";
+            case LogLevel::ERROR:
+                return "ERROR";
+            case LogLevel::SERVER:
+                return "SERVER";
+            default:
+                return "UNKNOWN";
+        }
+    }
+
+    std::string ShortToString::operator()(LogLevel logLevel)
+    {
+        switch (logLevel)
+        {
+            case LogLevel::DEBUG:
+                return "DBG";
+            case LogLevel::INFO:
+                return "INF";
+            case LogLevel::ERROR:
+                return "ERR";
+            case LogLevel::SERVER:
+                return "SRV";
+            default:
+                return "UNK";
+        }
+    }
+
     std::string Logger::Init(const std::string& path)
 	{
         memoryLog = std::make_unique<LogOutputMemory>(); 
@@ -202,7 +236,7 @@ namespace ezpz {
 
             auto t = system_clock::now();
             out = replaceTime(out, t);
-            out = replaceString(out, "{{Level}}", toString(logLevel));
+            out = replaceString(out, "{{Level}}", theLogger.LogLevelToString(logLevel));
             out = replaceString(out, "{{Tick}}", std::to_string(tick));
             out = replaceString(out, "{{Message}}", data);
             os << out << std::endl;
@@ -265,19 +299,8 @@ namespace ezpz {
 
     std::string toString(LogLevel logLevel)
     {
-		switch (logLevel)
-		{
-		case LogLevel::DEBUG:
-			return "DEBUG";
-		case LogLevel::INFO:
-			return "INFO";
-		case LogLevel::ERROR:
-			return "ERROR";
-        case LogLevel::SERVER:
-            return "SERVER";
-		default:
-			return "UNKNOWN";
-		}
+        static DefaultToString toString;
+        return toString(logLevel);
     }
 
 	std::ostream& operator<<(std::ostream& os, LogLevel logLevel)

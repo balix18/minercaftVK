@@ -5,6 +5,7 @@
 #include <fstream>
 #include <ostream>
 #include <sstream>
+#include <functional>
 
 #ifdef LOGGER_USING_FMT
 #include <fmt/format.h>
@@ -121,6 +122,14 @@ namespace ezpz {
         }
     }
 
+    struct DefaultToString {
+        std::string operator()(LogLevel logLevel);
+    };
+
+    struct ShortToString {
+        std::string operator()(LogLevel logLevel);
+    };
+
 	class Logger {
 	private:
 		Logger() = default;
@@ -143,6 +152,7 @@ namespace ezpz {
         std::string Init(const std::string& path);
         void SetUsertag(const std::string& usertag, const std::string& replacement);
         void AddOutputChannel(std::unique_ptr<ILogOutput> pOutput);
+        std::function<std::string(LogLevel)> LogLevelToString = DefaultToString{};
         template <typename... Args> void Log(LogLevel logLevel, Args&&... args) {
 #ifndef LOGGER_USING_FMT
             std::stringstream ss;
@@ -179,6 +189,10 @@ namespace ezpz {
             }
         }
 		void StartNextTick();
+
+        void SetToString(std::function<std::string(LogLevel)> formatter) {
+            LogLevelToString = std::move(formatter);
+        }
 
     private:
 		void Log_Impl(LogLevel logLevel, std::string const& str);

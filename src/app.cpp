@@ -62,6 +62,7 @@ void App::initLogger()
 {
 	std::string projectSourceDir = PROJECT_SOURCE_DIR;
 	std::cerr << theLogger.Init(projectSourceDir + "logger.ini");
+	theLogger.SetToString(ShortToString{});
 
 	theLogger.LogInfo("Logger initialized");
 }
