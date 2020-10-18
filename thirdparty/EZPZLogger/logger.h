@@ -1,5 +1,14 @@
 #pragma once
-#include "pch.h"
+#include <vector>
+#include <string>
+#include <memory>
+#include <fstream>
+#include <ostream>
+#include <sstream>
+
+#ifdef LOGGER_USING_FMT
+#include <fmt/format.h>
+#endif
 
 namespace ezpz {
 	enum LogLevel : unsigned char {
@@ -129,20 +138,19 @@ namespace ezpz {
         std::vector<std::unique_ptr<ILogOutput>> outputLogs;
         std::vector<OutputDescriptor> outputDescriptors;
 		int tick = -1;
-        std::string usertag;
-        std::tm* startTime;
 
 	public:
         std::string Init(const std::string& path);
-        void SetUsertag(std::string usertag);
+        void SetUsertag(const std::string& usertag, const std::string& replacement);
         void AddOutputChannel(std::unique_ptr<ILogOutput> pOutput);
-        //template <typename... Args> void Log(LogLevel logLevel, Args&&... args) {
-        //    std::stringstream ss;
-        //    impl::log_impl(ss, args...);
-        //    Log_Impl(logLevel, ss.str());
-        //}
         template <typename... Args> void Log(LogLevel logLevel, Args&&... args) {
+#ifndef LOGGER_USING_FMT
+            std::stringstream ss;
+            impl::log_impl(ss, args...);
+            Log_Impl(logLevel, ss.str());
+#else
             Log_Impl(logLevel, fmt::format(args...));
+#endif
         }
         template <typename... Args> void LogDebug(Args&&... args) {
             Log(LogLevel::DEBUG, args...);

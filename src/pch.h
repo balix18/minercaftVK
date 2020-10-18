@@ -30,6 +30,7 @@
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 
+#define LOGGER_USING_FMT
 #include <EZPZLogger/logger.h>
 
 #include <fmt/format.h>

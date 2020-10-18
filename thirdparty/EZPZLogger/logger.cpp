@@ -1,5 +1,10 @@
 #include "logger.h"
+#include <iostream>
+#include <filesystem>
+#include <chrono>
+
 namespace fs = std::filesystem;
+using namespace std::chrono;
 
 namespace ezpz {
     std::string replaceString(std::string subject, const std::string& search, const std::string& replace) {
@@ -11,13 +16,27 @@ namespace ezpz {
         return subject;
     }
 
-    std::string replaceTime(std::string subject, std::tm* t) {
+    // Based on: https://stackoverflow.com/questions/15957805/extract-year-month-day-etc-from-stdchronotime-point-in-c
+    std::string replaceTime(std::string subject, system_clock::time_point tp) {
+        typedef duration<int, std::ratio_multiply<hours::period, std::ratio<24> >::type> days;
+        system_clock::duration d = tp.time_since_epoch();
+        d -= duration_cast<days>(d);
+        d -= duration_cast<hours>(d);
+        d -= duration_cast<minutes>(d);
+        d -= duration_cast<seconds>(d);
+
+        milliseconds ms = duration_cast<milliseconds>(d);
+
+        time_t tt = system_clock::to_time_t(tp);
+        auto t = localtime(&tt);
+
         auto year = std::to_string(t->tm_year + 1900);
         auto month = std::to_string(t->tm_mon + 1);
         auto day = std::to_string(t->tm_mday);
         auto hour = std::to_string(t->tm_hour);
         auto minute = std::to_string(t->tm_min);
         auto second = std::to_string(t->tm_sec);
+        auto msstr = std::to_string(ms.count());
 
         subject = replaceString(subject, "{{Year}}", year);
         subject = replaceString(subject, "{{Month}}", month);
@@ -25,6 +44,7 @@ namespace ezpz {
         subject = replaceString(subject, "{{Hour}}", hour);
         subject = replaceString(subject, "{{Minute}}", minute);
         subject = replaceString(subject, "{{Second}}", second);
+        subject = replaceString(subject, "{{Ms}}", msstr);
 
         return subject;
     }
@@ -67,9 +87,7 @@ namespace ezpz {
 
         std::ifstream file{path};
 
-        auto tt = std::time(nullptr);
-        auto t = std::localtime(&tt);
-        startTime = t;
+        auto t = system_clock::now();
 
         OutputDescriptor desc;
         desc.Reset();
@@ -114,7 +132,7 @@ namespace ezpz {
                 line = replaceTime(line, t);
 
                 desc.pathFormat = line;
-                desc.hasUserTag = desc.pathFormat.find("{{Usertag}}", 0) != std::string::npos;
+                desc.hasUserTag = desc.pathFormat.find("{$", 0) != std::string::npos;
             } else if (line.find('=', 0) == std::string::npos) {
                 error << "Line " << lineCount << ": separator (=) is missing.\n";
                 continue;
@@ -167,7 +185,7 @@ namespace ezpz {
                     }
                 } else if (splitted[0] == "format") {
                     desc.lineFormat = splitted[1];
-                    desc.hasUserTag |= desc.lineFormat.find("{{Usertag}}", 0) != std::string::npos;
+                    desc.hasUserTag |= desc.lineFormat.find("{$", 0) != std::string::npos;
                 } else {
                     error << "Line " << lineCount << ": key is not recognized.\n";
                     continue;
@@ -182,8 +200,7 @@ namespace ezpz {
         if (HasLogLevelBit(desc.channels, logLevel)) {
             auto out = desc.lineFormat;
 
-            auto tt = std::time(nullptr);
-            auto t = std::localtime(&tt);
+            auto t = system_clock::now();
             out = replaceTime(out, t);
             out = replaceString(out, "{{Level}}", toString(logLevel));
             out = replaceString(out, "{{Tick}}", std::to_string(tick));
@@ -214,16 +231,25 @@ namespace ezpz {
         }
 	}
 
-    void Logger::SetUsertag(std::string tag)
+    void Logger::SetUsertag(const std::string& tag, const std::string& rep)
     {
-        usertag = std::move(tag);
-
+        std::vector<OutputDescriptor> tmp;
         for (auto& it : outputDescriptors) {
-            it.pathFormat = replaceString(it.pathFormat, "{{Usertag}}", usertag);
-            it.lineFormat = replaceString(it.lineFormat, "{{Usertag}}", usertag);
-            AddOutputChannel(std::make_unique<LogOutputFile>(it));
+            it.pathFormat = replaceString(it.pathFormat, "{$" + tag + "$}", rep);
+            it.lineFormat = replaceString(it.lineFormat, "{$" + tag + "$}", rep);
+
+            it.hasUserTag = false;
+            it.hasUserTag |= it.pathFormat.find("{$", 0) != std::string::npos;
+            it.hasUserTag |= it.lineFormat.find("{$", 0) != std::string::npos;
+            
+            if (!it.hasUserTag) {
+                AddOutputChannel(std::make_unique<LogOutputFile>(it));
+            } else {
+                tmp.push_back(it);
+            }
         }
         outputDescriptors.clear();
+        outputDescriptors = std::move(tmp);
     }
 
     void Logger::AddOutputChannel(std::unique_ptr<ILogOutput> pOutput)
