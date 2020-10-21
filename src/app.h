@@ -113,6 +113,7 @@ private:
 
 	void initLogger();
 	void initWindow();
+	void initGlfwim();
 	void initVK();
 	void createInstance();
 	void setupDebugMessenger();

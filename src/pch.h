@@ -33,7 +33,12 @@
 #define LOGGER_USING_FMT
 #include <EZPZLogger/logger.h>
 
+#define INPUT_MANAGER_USE_AS_SINGLETON
+#define INPUT_MANAGER_CUSTOM_SINGLETON_NAME theInputManager
+#include <glfwim/input_manager.h>
+
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
 using namespace ezpz;
+using namespace glfwim;

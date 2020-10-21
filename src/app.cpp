@@ -48,6 +48,7 @@ void App::run()
 {
 	initLogger();
 	initWindow();
+	initGlfwim();
 	initVK();
 	mainLoop();
 	cleanup();
@@ -77,6 +78,15 @@ void App::initWindow()
 	glfwSetFramebufferSizeCallback(window.get(), [](GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
 		app->framebufferResizeCallback(window, height, width);
+	});
+}
+
+void App::initGlfwim()
+{
+	theInputManager.initialize(window.get());
+
+	theInputManager.registerUtf8KeyHandler("r", Modifier::None, Action::Press, [&]() {
+		theLogger.LogInfo("reset called");
 	});
 }
 
@@ -1449,7 +1459,7 @@ vk::SampleCountFlagBits App::getMaxUsableSampleCount()
 void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
-		glfwPollEvents();
+		theInputManager.pollEvents();
 		drawFrame();
 	}
 

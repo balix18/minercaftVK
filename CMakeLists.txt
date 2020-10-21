@@ -18,8 +18,6 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif()
 
-add_subdirectory(thirdparty/EZPZLogger)
-
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
@@ -27,6 +25,9 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Stb REQUIRED)
 find_package(Boost REQUIRED)
+
+add_subdirectory(thirdparty/EZPZLogger)
+add_subdirectory(thirdparty/glfwim)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${Boost_INCLUDE_DIRS}
@@ -41,6 +42,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Vulkan::Vulkan
     ${Boost_LIBRARIES}
     EZPZLogger
+    glfwim
 )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
