@@ -50,13 +50,9 @@ void App::run()
 	initWindow();
 	initGlfwim();
 	initVK();
+	initCamera();
 	mainLoop();
 	cleanup();
-}
-
-void App::framebufferResizeCallback(GLFWwindow* glfwWindow, int width, int height)
-{
-	framebufferResized = true;
 }
 
 void App::initLogger()
@@ -74,16 +70,15 @@ void App::initWindow()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	window.reset(glfwCreateWindow(windowSize.width, windowSize.height, "minercaftVK-App", nullptr, nullptr));
-	glfwSetWindowUserPointer(window.get(), this);
-	glfwSetFramebufferSizeCallback(window.get(), [](GLFWwindow* window, int width, int height) {
-		auto app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
-		app->framebufferResizeCallback(window, height, width);
-	});
 }
 
 void App::initGlfwim()
 {
 	theInputManager.initialize(window.get());
+
+	theInputManager.registerWindowResizeHandler([&](int width, int height) {
+		framebufferResized = true;
+	});
 
 	theInputManager.registerUtf8KeyHandler("r", Modifier::None, Action::Press, [&]() {
 		theLogger.LogInfo("reset called");
@@ -117,6 +112,17 @@ void App::initVK()
 	createDescriptorSets();
 	createCommandBuffers();
 	createSyncObjects();
+}
+
+void App::initCamera()
+{
+	camera.Init(true);
+	camera.UpdatePosition(glm::vec3(2.0f, 2.0f, 2.0f));
+	camera.UpdateDirection(glm::vec3(0.0f, 0.0f, 0.0f) - camera.GetPosition()); // hogy az origoba nezzen
+	camera.parameters.clippingDistance = { 0.1f, 10.0f };
+
+	// nem kell parameters.UpdateWindowSize-t hivni kezzel, mert automatikusan meghivodik 
+	// a createSwapChain vegen init-kor vagy ha resize callback van
 }
 
 void App::createInstance()
@@ -489,6 +495,8 @@ void App::createSwapChain()
 	swapChainImages = device.getSwapchainImagesKHR(swapChain);
 	swapChainImageFormat = surfaceFormat.format;
 	swapChainExtent = extent;
+
+	camera.parameters.UpdateWindowSize((float)swapChainExtent.width, (float)swapChainExtent.height);
 }
 
 vk::ImageView App::createImageView(vk::Image image, vk::Format format, vk::ImageAspectFlags aspectFlags, uint32_t mipLevels)
@@ -655,8 +663,8 @@ void App::createGraphicsPipeline()
 	vk::Viewport viewport;
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(swapChainExtent.width);
-	viewport.height = static_cast<float>(swapChainExtent.height);
+	viewport.width = (float)swapChainExtent.width;
+	viewport.height = (float)swapChainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -1365,10 +1373,9 @@ void App::updateUniformBuffer(uint32_t currentImage)
 	// create the mvp matrices
 	UniformBufferObject ubo{};
 	glm::mat4 identity{ 1.0f };
-	ubo.model = glm::rotate(identity, time * glm::radians(22.5f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.proj = glm::perspective(glm::radians(45.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-	ubo.proj[1][1] *= -1;
+	ubo.model = glm::rotate(identity, time * glm::radians(22.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+	ubo.view = camera.V();
+	ubo.proj = camera.P();
 
 	// map uniform buffer to cpu, and fill it
 	auto dataPtr = device.mapMemory(uniformBuffersMemory[currentImage], 0, sizeof(ubo));
@@ -1460,6 +1467,11 @@ void App::mainLoop()
 {
 	while (!glfwWindowShouldClose(window.get())) {
 		theInputManager.pollEvents();
+
+		auto currentTime = static_cast<float>(glfwGetTime());
+		camera.Update(currentTime);
+		camera.Control();
+
 		drawFrame();
 	}
 

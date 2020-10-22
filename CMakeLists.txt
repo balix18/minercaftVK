@@ -51,5 +51,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/pch.cpp"
     "src/main.cpp"
     "src/app.cpp"
+    "src/camera.cpp"
     "src/utils.cpp"
 )

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "camera.h"
+
 struct QueueFamilyIndices
 {
 	std::optional<uint32_t> graphicsFamily;
@@ -56,9 +58,9 @@ struct App
 	App(WindowSize windowSize);
 	~App() = default;
 
-	void run();
+	Camera camera;
 
-	void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+	void run();
 
 private:
 	vk::Instance instance;
@@ -115,6 +117,7 @@ private:
 	void initWindow();
 	void initGlfwim();
 	void initVK();
+	void initCamera();
 	void createInstance();
 	void setupDebugMessenger();
 	void createSurface();
