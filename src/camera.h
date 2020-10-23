@@ -16,10 +16,7 @@ struct Camera
 	glm::mat4 V() const;
 	glm::mat4 P() const;
 
-	void StartDrag(glm::vec2 const& currentPoint);
-	void Drag(glm::vec2 const& currentPoint);
 	void Update(float newTime);
-
 	void Control();
 
 	struct Parameters
@@ -38,7 +35,7 @@ private:
 	glm::vec3 const worldRight, worldUp, worldForward;
 	glm::vec3 position;
 	glm::vec3 direction, right, up;
-	struct Drag { float speed; glm::vec2 startPos; } drag;
+	struct Drag { float speed; glm::vec2 startPos; bool moving; } drag;
 	struct TimeInfo { float currentTime, lastTime, deltaTime; } time;
 	glm::vec3 moveDirection;
 	bool isVulkan;

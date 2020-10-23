@@ -27,7 +27,7 @@ void Camera::UpdatePosition(glm::vec3 newPosition)
 
 void Camera::UpdateDirection(glm::vec3 newDirection)
 {
-	direction = newDirection;
+	direction = glm::normalize(newDirection);
 	right = glm::cross(direction, worldUp);
 	up = glm::cross(right, direction);
 }
@@ -105,6 +105,29 @@ void Camera::RegisterInputHandlers()
 		}
 	});
 
+	// Drag
+	theInputManager.registerMouseButtonHandler(MouseButton::Left, Modifier::None, [&](auto action) {
+		drag.moving = (action == Action::Press || action == Action::Repeat);
+	});
+
+	// Drag
+	theInputManager.registerCursorPositionHandler([&](double x, double y) {
+		glm::vec2 currentPos{ (float)x, (float)y };
+		if (drag.moving) {
+			auto delta = currentPos - drag.startPos;
+
+			auto glmMidentity = glm::mat4(1.0f);
+			auto glmMrotateX = glm::rotate(glmMidentity, delta.x * drag.speed, worldUp);
+			auto glmMrotateY = glm::rotate(glmMidentity, delta.y * drag.speed, right);
+
+			direction = glm::vec4(direction, 1) * glmMrotateX;
+			direction = glm::vec4(direction, 1) * glmMrotateY;
+			UpdateDirection(direction);
+		}
+
+		drag.startPos = currentPos;
+	});
+
 	theInputManager.registerUtf8KeyHandler(" ", Modifier::None, Action::Press, [&]() {
 		theLogger.LogInfo("CameraPos: {}, CameraDir: {}", glm::to_string(position), glm::to_string(direction));
 	});
@@ -127,33 +150,6 @@ glm::mat4 Camera::P() const
 	return proj;
 }
 
-void Camera::StartDrag(glm::vec2 const& currentPoint)
-{
-	throw std::runtime_error("TODO");
-
-	drag.startPos = currentPoint;
-}
-
-void Camera::Drag(glm::vec2 const& currentPoint)
-{
-	throw std::runtime_error("TODO");
-
-	auto delta = currentPoint - drag.startPos;
-
-	direction = glm::normalize(direction);
-	right = glm::cross(direction, worldUp);
-	up = glm::cross(right, direction);
-
-	auto glmMidentity = glm::mat4(1.0f);
-	auto glmMrotateX = glm::rotate(glmMidentity, delta.x * drag.speed, worldUp);
-	auto glmMrotateY = glm::rotate(glmMidentity, delta.y * drag.speed, right);
-
-	direction = glm::vec4(direction, 1) * glmMrotateX;
-	direction = glm::vec4(direction, 1) * glmMrotateY;
-
-	drag.startPos = currentPoint;
-}
-
 void Camera::Update(float newTime)
 {
 	time.deltaTime = newTime - time.lastTime;
@@ -163,12 +159,14 @@ void Camera::Update(float newTime)
 
 void Camera::Control()
 {
-	if (pressedKeys["w"]) position += direction * movementSpeed * time.deltaTime;
-	if (pressedKeys["s"]) position -= direction * movementSpeed * time.deltaTime;
-	if (pressedKeys["d"]) position += right * movementSpeed * time.deltaTime;
-	if (pressedKeys["a"]) position -= right * movementSpeed * time.deltaTime;
-	if (pressedKeys["e"]) position += up * movementSpeed * time.deltaTime;
-	if (pressedKeys["q"]) position -= up * movementSpeed * time.deltaTime;
+	auto delta = movementSpeed * time.deltaTime;
+
+	if (pressedKeys["w"]) position += direction * delta;
+	if (pressedKeys["s"]) position -= direction * delta;
+	if (pressedKeys["d"]) position += right * delta;
+	if (pressedKeys["a"]) position -= right * delta;
+	if (pressedKeys["e"]) position += up * delta;
+	if (pressedKeys["q"]) position -= up * delta;
 }
 
 Camera::Parameters::Parameters():
