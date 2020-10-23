@@ -1465,7 +1465,7 @@ vk::SampleCountFlagBits App::getMaxUsableSampleCount()
 
 void App::mainLoop()
 {
-	while (!glfwWindowShouldClose(window.get())) {
+	while (!glfwWindowShouldClose(window.get()) && glfwGetKey(window.get(), GLFW_KEY_ESCAPE) != GLFW_PRESS) {
 		theInputManager.pollEvents();
 
 		auto currentTime = static_cast<float>(glfwGetTime());
