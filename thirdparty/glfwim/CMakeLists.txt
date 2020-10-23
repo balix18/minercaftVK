@@ -1,6 +1,8 @@
-add_library(glfwim "input_manager.cpp")
+set(libName glfwim)
 
-set_target_properties(glfwim PROPERTIES CXX_STANDARD 20)
+add_library(${libName} "input_manager.cpp")
 
-target_compile_definitions(glfwim PRIVATE INPUT_MANAGER_USE_AS_SINGLETON INPUT_MANAGER_CUSTOM_SINGLETON_NAME=theInputManager)
-target_link_libraries(glfwim PRIVATE glfw)
+set_target_properties(${libName} PROPERTIES CXX_STANDARD 20)
+
+target_compile_definitions(${libName} PRIVATE INPUT_MANAGER_USE_AS_SINGLETON INPUT_MANAGER_CUSTOM_SINGLETON_NAME=theInputManager)
+target_link_libraries(${libName} PRIVATE glfw)

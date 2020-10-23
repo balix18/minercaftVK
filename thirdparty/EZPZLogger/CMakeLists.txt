@@ -1,3 +1,5 @@
-add_library(EZPZLogger "logger.cpp")
+set(libName EZPZLogger)
 
-set_target_properties(EZPZLogger PROPERTIES CXX_STANDARD 20)
+add_library(${libName} "logger.cpp")
+
+set_target_properties(${libName} PROPERTIES CXX_STANDARD 20)
