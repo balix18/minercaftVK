@@ -38,6 +38,10 @@
 #define INPUT_MANAGER_CUSTOM_SINGLETON_NAME theInputManager
 #include <glfwim/input_manager.h>
 
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 

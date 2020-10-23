@@ -47,12 +47,30 @@ App::App(WindowSize windowSize) :
 void App::run()
 {
 	initLogger();
+	initRuncfg();
 	initWindow();
 	initGlfwim();
 	initVK();
 	initCamera();
 	mainLoop();
 	cleanup();
+}
+
+void App::initRuncfg()
+{
+	using namespace rapidjson;
+
+	std::string projectSourceDir = PROJECT_SOURCE_DIR;
+	std::ifstream ifs(projectSourceDir + "runcfg.json");
+	IStreamWrapper isw(ifs);
+
+	Document d;
+	d.ParseStream(isw);
+
+	auto currentRenderer = d["currentRenderer"].GetString();
+	auto currentRendererName = d["renderers"][currentRenderer]["name"].GetString();
+
+	theLogger.LogInfo("Using {} renderer", currentRendererName);
 }
 
 void App::initLogger()

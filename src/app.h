@@ -114,6 +114,7 @@ private:
 	std::vector<const char*> deviceExtensions;
 
 	void initLogger();
+	void initRuncfg();
 	void initWindow();
 	void initGlfwim();
 	void initVK();

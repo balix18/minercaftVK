@@ -1,0 +1,12 @@
+{
+  "project": "minercaftVK",
+  "renderers": {
+    "vk": {
+      "name": "vulkan"
+    },
+    "gl": {
+      "name": "opengl"
+    }
+  },
+  "currentRenderer": "vk"
+}
