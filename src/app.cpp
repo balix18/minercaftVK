@@ -53,7 +53,8 @@ void App::run()
 	initVK();
 	initCamera();
 	mainLoop();
-	cleanup();
+	cleanupVK();
+	cleanupWindow();
 }
 
 void App::initRuncfg()
@@ -67,10 +68,23 @@ void App::initRuncfg()
 	Document d;
 	d.ParseStream(isw);
 
-	auto currentRenderer = d["currentRenderer"].GetString();
-	auto currentRendererName = d["renderers"][currentRenderer]["name"].GetString();
+	std::string currentRenderer = d["currentRenderer"].GetString();
+	std::string currentRendererName = d["renderers"][currentRenderer.c_str()]["name"].GetString();
+
+	if (currentRenderer == "vk") renderer = Renderer::VK;
+	if (currentRenderer == "gl") renderer = Renderer::GL;
 
 	theLogger.LogInfo("Using {} renderer", currentRendererName);
+}
+
+bool App::IsVulkan()
+{
+	return renderer == Renderer::VK;
+}
+
+bool App::IsOpenGl()
+{
+	return renderer == Renderer::GL;
 }
 
 void App::initLogger()
@@ -84,10 +98,49 @@ void App::initLogger()
 
 void App::initWindow()
 {
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-	window.reset(glfwCreateWindow(windowSize.width, windowSize.height, "minercaftVK-App", nullptr, nullptr));
+	struct { int major = 0, minor = 0, revision = 0; } glfwVersion;
+	glfwGetVersion(&glfwVersion.major, &glfwVersion.minor, &glfwVersion.revision);
+	theLogger.LogInfo("GLFW version {}.{}.{}", glfwVersion.major, glfwVersion.minor, glfwVersion.revision);
+
+	if (!glfwInit()) {
+		theLogger.LogError("Failed to initialize GLFW");
+		exit(EXIT_FAILURE);
+	}
+
+	glfwSetErrorCallback([](int errorCode, const char* description) {
+		theLogger.LogError("GLFW error code: {}, description: {}", errorCode, description);
+	});
+
+	if (IsVulkan()) {
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+	}
+	
+	if (IsOpenGl()) {
+		struct { int major = 4; int minor = 5; } glVersion;
+		std::string glslVersion = "#version 450";
+		glfwWindowHint(GLFW_SAMPLES, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, glVersion.major);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, glVersion.minor);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+	}
+
+	auto glfwWindow = glfwCreateWindow(windowSize.width, windowSize.height, "minercaftVK-App", nullptr, nullptr);
+	if (!glfwWindow) {
+		theLogger.LogError("Failed to open GLFW window");
+		glfwTerminate();
+		exit(EXIT_FAILURE);
+	}
+
+	window.reset(glfwWindow);
+
+	if (IsOpenGl()) {
+		glfwMakeContextCurrent(window.get());
+
+		enum struct VSync { DISABLED, ENABLED } vsync = VSync::ENABLED;
+		glfwSwapInterval((int)vsync);
+	}
 }
 
 void App::initGlfwim()
@@ -134,7 +187,7 @@ void App::initVK()
 
 void App::initCamera()
 {
-	camera.Init(true);
+	camera.Init(IsVulkan());
 	camera.UpdatePosition(glm::vec3(2.0f, 2.0f, 2.0f));
 	camera.UpdateDirection(glm::vec3(0.0f, 0.0f, 0.0f) - camera.GetPosition()); // hogy az origoba nezzen
 	camera.parameters.clippingDistance = { 0.1f, 10.0f };
@@ -1578,7 +1631,7 @@ void App::drawFrame()
 	currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
-void App::cleanup()
+void App::cleanupVK()
 {
 	cleanupSwapChain();
 
@@ -1612,7 +1665,10 @@ void App::cleanup()
 
 	instance.destroySurfaceKHR(surface);
 	instance.destroy();
+}
 
+void App::cleanupWindow()
+{
 	window.reset();
 	glfwTerminate();
 }

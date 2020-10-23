@@ -113,6 +113,10 @@ private:
 	std::vector<const char*> validationLayers;
 	std::vector<const char*> deviceExtensions;
 
+	enum class Renderer { VK, GL } renderer;
+
+	bool IsVulkan();
+	bool IsOpenGl();
 	void initLogger();
 	void initRuncfg();
 	void initWindow();
@@ -173,5 +177,6 @@ private:
 	vk::SampleCountFlagBits getMaxUsableSampleCount();
 	void mainLoop();
 	void drawFrame();
-	void cleanup();
+	void cleanupVK();
+	void cleanupWindow();
 };
