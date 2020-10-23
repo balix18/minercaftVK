@@ -8,7 +8,7 @@ int main()
 		app.run();
 	}
 	catch (std::exception& e) {
-		fmt::print("exception: {}", e.what());
+		theLogger.LogError("Exception catched in main: {}", e.what());
 		return EXIT_FAILURE;
 	}
 

@@ -9,7 +9,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	fmt::print(std::cerr, "validation layer: {}\n", pCallbackData->pMessage);
+	theLogger.LogError("Validation error: {}", pCallbackData->pMessage);
 
 	return VK_FALSE;
 }
@@ -162,6 +162,8 @@ void App::initGlfwim()
 
 void App::initVK()
 {
+	if (!IsVulkan()) return;
+
 	createInstance();
 	setupDebugMessenger();
 	createSurface();
@@ -1576,14 +1578,24 @@ void App::mainLoop()
 		camera.Update(currentTime);
 		camera.Control();
 
-		drawFrame();
+		if (IsVulkan()) {
+			drawFrameVK();
+		}
+
+		if (IsOpenGl()) {
+			drawFrameGL();
+		}
 	}
 
-	device.waitIdle();
+	if (IsVulkan()) {
+		device.waitIdle();
+	}
 }
 
-void App::drawFrame()
+void App::drawFrameVK()
 {
+	if (!IsVulkan()) return;
+
 	auto noTimeout = std::numeric_limits<uint64_t>::max();
 
 	auto handleErrorOutOfDateKHR = [](std::exception& e) {
@@ -1664,8 +1676,15 @@ void App::drawFrame()
 	currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
+void App::drawFrameGL()
+{
+	// TODO draw opengl frame
+}
+
 void App::cleanupVK()
 {
+	if (!IsVulkan()) return;
+
 	cleanupSwapChain();
 
 	device.destroySampler(textureSampler);

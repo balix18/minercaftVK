@@ -179,7 +179,8 @@ private:
 	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
 	vk::SampleCountFlagBits getMaxUsableSampleCount();
 	void mainLoop();
-	void drawFrame();
+	void drawFrameVK();
+	void drawFrameGL();
 	void cleanupVK();
 	void cleanupWindow();
 };
