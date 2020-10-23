@@ -14,6 +14,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <glad/glad.h>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 

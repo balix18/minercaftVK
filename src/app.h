@@ -114,6 +114,7 @@ private:
 	std::vector<const char*> deviceExtensions;
 
 	enum class Renderer { VK, GL } renderer;
+	bool useGlDebugCallback;
 
 	bool IsVulkan();
 	bool IsOpenGl();
@@ -122,6 +123,8 @@ private:
 	void initWindow();
 	void initGlfwim();
 	void initVK();
+	void initGlad();
+	void initGlDebugCallback();
 	void initCamera();
 	void createInstance();
 	void setupDebugMessenger();

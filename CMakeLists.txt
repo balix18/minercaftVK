@@ -30,11 +30,13 @@ find_package(Boost REQUIRED)
 
 add_subdirectory(thirdparty/EZPZLogger)
 add_subdirectory(thirdparty/glfwim)
+add_subdirectory(thirdparty/glad)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${Boost_INCLUDE_DIRS}
     ${RAPIDJSON_INCLUDE_DIRS}
     thirdparty
+    thirdparty/Glad/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -46,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${Boost_LIBRARIES}
     EZPZLogger
     glfwim
+    glad
 )
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE "src/pch.h")
@@ -55,5 +58,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/main.cpp"
     "src/app.cpp"
     "src/camera.cpp"
+    "src/gl_wrapper.cpp"
     "src/utils.cpp"
 )

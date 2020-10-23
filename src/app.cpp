@@ -1,5 +1,6 @@
 #include "app.h"
 
+#include "gl_wrapper.h"
 #include "utils.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
@@ -26,7 +27,8 @@ App::App(WindowSize windowSize) :
 	framebufferResized{ false },
 	msaaSamples{ vk::SampleCountFlagBits::e1 },
 	debugMessenger{ nullptr },
-	enableValidationLayers{ false }
+	enableValidationLayers{ false },
+	useGlDebugCallback{ false }
 {
 	currentFrame = 0;
 	maxFramesInFlight = 2;
@@ -51,6 +53,8 @@ void App::run()
 	initWindow();
 	initGlfwim();
 	initVK();
+	initGlad();
+	initGlDebugCallback();
 	initCamera();
 	mainLoop();
 	cleanupVK();
@@ -183,6 +187,35 @@ void App::initVK()
 	createDescriptorSets();
 	createCommandBuffers();
 	createSyncObjects();
+}
+
+void App::initGlad()
+{
+	if (!IsOpenGl()) return;
+
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
+		theLogger.LogError("gladLoadGLLoader failed!");
+		exit(EXIT_FAILURE);
+	}
+
+	theLogger.LogInfo("GL Vendor    : {}", GlWrapper::GetString(GL_VENDOR));
+	theLogger.LogInfo("GL Renderer  : {}", GlWrapper::GetString(GL_RENDERER));
+	theLogger.LogInfo("GL Version (string)     : {}", GlWrapper::GetString(GL_VERSION));
+	theLogger.LogInfo("GL Version (integer)    : {}.{}", GlWrapper::GetIntegerv(GL_MAJOR_VERSION), GlWrapper::GetIntegerv(GL_MINOR_VERSION));
+	theLogger.LogInfo("GLSL Version : {}", GlWrapper::GetString(GL_SHADING_LANGUAGE_VERSION));
+}
+
+void App::initGlDebugCallback()
+{
+	if (!IsOpenGl() || !useGlDebugCallback) return;
+
+	auto debugCallback = (GLDEBUGPROC)[](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+		std::string errorWrapper = type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "";
+		theLogger.LogError("Gl debug callback: {} type = {:#x}, severity = {:#x}, message = {}", errorWrapper, type, severity, message);
+	};
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(debugCallback, 0);
 }
 
 void App::initCamera()
