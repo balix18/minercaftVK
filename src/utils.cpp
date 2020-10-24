@@ -17,3 +17,10 @@ std::vector<char> Utils::readBinaryFile(std::string const& fileName)
 
 	return buff;
 }
+
+void Utils::GLFWwindowDeleter::operator()(GLFWwindow* ptr)
+{
+	if (ptr) {
+		glfwDestroyWindow(ptr);
+	}
+}
