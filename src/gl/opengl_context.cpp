@@ -7,9 +7,10 @@ OpenGlContext::OpenGlContext() :
 {
 }
 
-inline void OpenGlContext::initWindowGL(GLFWwindow* newWindow)
+void OpenGlContext::initWindowGL(GLFWwindow* newWindow, Utils::WindowSize newWindowSize)
 {
 	window = newWindow;
+	windowSize = newWindowSize;
 }
 
 void OpenGlContext::initCameraGL(Camera* newCamera)
@@ -33,12 +34,35 @@ void OpenGlContext::initGL()
 
 void OpenGlContext::initGlfwimGL()
 {
-	// TODO
+	theInputManager.initialize(window);
 }
 
 void OpenGlContext::drawFrameGL()
 {
-	// TODO
+	glViewport(0, 0, windowSize.width, windowSize.height);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//renderState.worldEye = sponzaScene->camera.position;
+	//renderState.ambientLight = sponzaScene->ambientLight;
+	//renderState.pointLight = sponzaScene->pointLight;
+
+	glCullFace(GL_BACK);	// ez a default, de azert inkabb itt hagyom hogy egyertelmu legyen
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+
+	// TODO draw
+	//for (auto const& drawable : sponzaScene->drawableList)
+	//{
+	//	drawable->Draw(shadowShader, sponzaScene->camera);
+	//}
+
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
+
+	glfwSwapBuffers(window);
 }
 
 void OpenGlContext::cleanupGL()

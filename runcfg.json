@@ -8,5 +8,5 @@
       "name": "opengl"
     }
   },
-  "currentRenderer": "vk"
+  "currentRenderer": "gl"
 }

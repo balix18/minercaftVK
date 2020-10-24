@@ -94,15 +94,19 @@ void App::initWindow()
 
 	window.reset(glfwWindow);
 
-	if (IsVulkan()) {
-		vkCtx.initWindowVK(window.get());
-	}
-
 	if (IsOpenGl()) {
 		glfwMakeContextCurrent(window.get());
 
 		enum struct VSync { DISABLED, ENABLED } vsync = VSync::ENABLED;
 		glfwSwapInterval((int)vsync);
+	}
+
+	if (IsVulkan()) {
+		vkCtx.initWindowVK(window.get());
+	}
+
+	if (IsOpenGl()) {
+		glCtx.initWindowGL(window.get(), windowSize);
 	}
 }
 
