@@ -58,7 +58,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/main.cpp"
     "src/app.cpp"
     "src/camera.cpp"
-    "src/gl_wrapper.cpp"
     "src/utils.cpp"
-    "src/vulkan_context.cpp"
+    "src/vk/vulkan_context.cpp"
+    "src/gl/gl_wrapper.cpp"
+    "src/gl/opengl_context.cpp"
 )

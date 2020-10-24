@@ -1,10 +1,7 @@
 #include "app.h"
 
-#include "gl_wrapper.h"
-
 App::App(Utils::WindowSize windowSize) :
-	windowSize{ windowSize },
-	useGlDebugCallback{ false }
+	windowSize{ windowSize }
 {
 }
 
@@ -14,12 +11,10 @@ void App::run()
 	initRuncfg();
 	initWindow();
 	initGlfwim();
-	initCameraVK();
-	initVK();
-	initGlad();
-	initGlDebugCallback();
+	initCamera();
+	initContext();
 	mainLoop();
-	cleanupVK();
+	cleanup();
 	cleanupWindow();
 }
 
@@ -118,51 +113,30 @@ void App::initGlfwim()
 	}
 
 	if (IsOpenGl()) {
-		// TODO
+		glCtx.initGlfwimGL();
 	}
 }
 
-void App::initVK()
+void App::initContext()
 {
-	if (!IsVulkan()) return;
-
-	vkCtx.initVK();
-}
-
-void App::initGlad()
-{
-	if (!IsOpenGl()) return;
-
-	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
-		theLogger.LogError("gladLoadGLLoader failed!");
-		exit(EXIT_FAILURE);
+	if (IsVulkan()) {
+		vkCtx.initVK();
 	}
 
-	theLogger.LogInfo("GL Vendor    : {}", GlWrapper::GetString(GL_VENDOR));
-	theLogger.LogInfo("GL Renderer  : {}", GlWrapper::GetString(GL_RENDERER));
-	theLogger.LogInfo("GL Version (string)     : {}", GlWrapper::GetString(GL_VERSION));
-	theLogger.LogInfo("GL Version (integer)    : {}.{}", GlWrapper::GetIntegerv(GL_MAJOR_VERSION), GlWrapper::GetIntegerv(GL_MINOR_VERSION));
-	theLogger.LogInfo("GLSL Version : {}", GlWrapper::GetString(GL_SHADING_LANGUAGE_VERSION));
+	if (IsOpenGl()) {
+		glCtx.initGL();
+	}
 }
 
-void App::initGlDebugCallback()
+void App::initCamera()
 {
-	if (!IsOpenGl() || !useGlDebugCallback) return;
+	if (IsVulkan()) {
+		vkCtx.initCameraVK(&camera);
+	}
 
-	auto debugCallback = (GLDEBUGPROC)[](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-		std::string errorWrapper = type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "";
-		theLogger.LogError("Gl debug callback: {} type = {:#x}, severity = {:#x}, message = {}", errorWrapper, type, severity, message);
-	};
-
-	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(debugCallback, 0);
-}
-
-void App::initCameraVK()
-{
-	if (!IsVulkan()) return;
-
-	vkCtx.initCameraVK(&camera);
+	if (IsOpenGl()) {
+		glCtx.initCameraGL(&camera);
+	}
 }
 
 void App::mainLoop()
@@ -174,13 +148,7 @@ void App::mainLoop()
 		camera.Update(currentTime);
 		camera.Control();
 
-		if (IsVulkan()) {
-			drawFrameVK();
-		}
-
-		if (IsOpenGl()) {
-			drawFrameGL();
-		}
+		drawFrame();
 	}
 
 	if (IsVulkan()) {
@@ -188,23 +156,26 @@ void App::mainLoop()
 	}
 }
 
-void App::drawFrameVK()
+void App::drawFrame()
 {
-	if (!IsVulkan()) return;
+	if (IsVulkan()) {
+		vkCtx.drawFrameVK();
+	}
 
-	vkCtx.drawFrameVK();
+	if (IsOpenGl()) {
+		glCtx.drawFrameGL();
+	}
 }
 
-void App::drawFrameGL()
+void App::cleanup()
 {
-	// TODO draw opengl frame
-}
+	if (IsVulkan()) {
+		vkCtx.cleanupVK();
+	}
 
-void App::cleanupVK()
-{
-	if (!IsVulkan()) return;
-
-	vkCtx.cleanupVK();
+	if (IsOpenGl()) {
+		glCtx.cleanupGL();
+	}
 }
 
 void App::cleanupWindow()

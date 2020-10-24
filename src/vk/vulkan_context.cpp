@@ -1,6 +1,6 @@
 #include "vulkan_context.h"
 
-#include "utils.h"
+#include "../utils.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

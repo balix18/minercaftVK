@@ -2,7 +2,8 @@
 
 #include "camera.h"
 #include "utils.h"
-#include "vulkan_context.h"
+#include "vk/vulkan_context.h"
+#include "gl/opengl_context.h"
 
 struct App
 {
@@ -18,8 +19,9 @@ struct App
 private:
 
 	enum class Renderer { VK, GL } renderer;
-	bool useGlDebugCallback;
+	
 	VulkanContext vkCtx;
+	OpenGlContext glCtx;
 
 	bool IsVulkan();
 	bool IsOpenGl();
@@ -27,17 +29,10 @@ private:
 	void initRuncfg();
 	void initWindow();
 	void initGlfwim();
+	void initCamera();
+	void initContext();
 	void cleanupWindow();
+	void drawFrame();
 	void mainLoop();
-
-	// Vulkan specific
-	void initVK();
-	void cleanupVK();
-	void drawFrameVK();
-	void initCameraVK();
-
-	// OpenGl specific
-	void initGlad();
-	void initGlDebugCallback();
-	void drawFrameGL();
+	void cleanup();
 };
