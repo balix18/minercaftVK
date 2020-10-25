@@ -1,5 +1,7 @@
 #include "app.h"
 
+#include "runcfg.h"
+
 App::App(Utils::WindowSize windowSize) :
 	windowSize{ windowSize }
 {
@@ -20,20 +22,12 @@ void App::run()
 
 void App::initRuncfg()
 {
-	std::string projectSourceDir = PROJECT_SOURCE_DIR;
-	std::ifstream ifs(projectSourceDir + "runcfg.json");
-	rapidjson::IStreamWrapper isw(ifs);
+	theRuncfg.Init();
 
-	rapidjson::Document d;
-	d.ParseStream(isw);
+	if (theRuncfg.currentRenderer == "vk") renderer = Renderer::VK;
+	if (theRuncfg.currentRenderer == "gl") renderer = Renderer::GL;
 
-	std::string currentRenderer = d["currentRenderer"].GetString();
-	std::string currentRendererName = d["renderers"][currentRenderer.c_str()]["name"].GetString();
-
-	if (currentRenderer == "vk") renderer = Renderer::VK;
-	if (currentRenderer == "gl") renderer = Renderer::GL;
-
-	theLogger.LogInfo("Using {} renderer", currentRendererName);
+	theLogger.LogInfo("Using {} renderer", theRuncfg.currentRendererName);
 }
 
 bool App::IsVulkan()
@@ -48,8 +42,8 @@ bool App::IsOpenGl()
 
 void App::initLogger()
 {
-	std::string projectSourceDir = PROJECT_SOURCE_DIR;
-	std::cerr << theLogger.Init(projectSourceDir + "logger.ini");
+	auto loggerIniPath = theRuncfg.projectSourceDir / "logger.ini";
+	std::cerr << theLogger.Init(loggerIniPath.string());
 	theLogger.SetToString(ShortToString{});
 
 	theLogger.LogInfo("Logger initialized");

@@ -1,6 +1,7 @@
 #include "vulkan_context.h"
 
 #include "../utils.h"
+#include "../runcfg.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -728,9 +729,8 @@ void VulkanContext::createDescriptorSetLayout()
 
 void VulkanContext::createGraphicsPipeline()
 {
-	std::string projectPath = PROJECT_SOURCE_DIR;
-	auto vertShaderCode = Utils::readBinaryFile(projectPath + "shaders/vert.spv");
-	auto fragShaderCode = Utils::readBinaryFile(projectPath + "shaders/frag.spv");
+	auto vertShaderCode = Utils::readBinaryFile((theRuncfg.shadersDir / "vert.spv").string());
+	auto fragShaderCode = Utils::readBinaryFile((theRuncfg.shadersDir / "frag.spv").string());
 
 	auto vertShaderModule = createShaderModule(vertShaderCode);
 	auto fragShaderModule = createShaderModule(fragShaderCode);
@@ -894,8 +894,7 @@ void VulkanContext::createDepthResources()
 
 void VulkanContext::createTextureImage()
 {
-	std::string projectPath = PROJECT_SOURCE_DIR;
-	std::string fileName = projectPath + "textures/viking_room.png";
+	auto fileName = (theRuncfg.texturesDir / "viking_room.png").string();
 
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -1017,8 +1016,7 @@ void VulkanContext::loadModel()
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 
-	std::string projectPath = PROJECT_SOURCE_DIR;
-	auto modelFileName = projectPath + "textures/viking_room.obj";
+	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
 
 	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFileName.c_str())) {
 		throw std::runtime_error(warn + err);

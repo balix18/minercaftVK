@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 project(minercaftVK-App)
 
 add_executable(${PROJECT_NAME})
-target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/")
+target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 if (MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE 
@@ -59,6 +59,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/app.cpp"
     "src/camera.cpp"
     "src/utils.cpp"
+    "src/runcfg.cpp"
     "src/vk/vulkan_context.cpp"
     "src/gl/gl_wrapper.cpp"
     "src/gl/opengl_context.cpp"

@@ -11,6 +11,7 @@
 #include <limits>
 #include <chrono>
 #include <fstream>
+#include <filesystem>
 
 #include <vulkan/vulkan.hpp>
 
@@ -47,5 +48,6 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
+namespace fs = std::filesystem;
 using namespace ezpz;
 using namespace glfwim;

@@ -8,5 +8,7 @@
       "name": "opengl"
     }
   },
-  "currentRenderer": "gl"
+  "currentRenderer": "gl",
+  "shadersDir": "shaders",
+  "texturesDir": "textures"
 }
