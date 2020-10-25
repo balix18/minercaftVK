@@ -61,6 +61,10 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/utils.cpp"
     "src/runcfg.cpp"
     "src/vk/vulkan_context.cpp"
+    "src/gl/gl_object_3d.cpp"
+    "src/gl/gl_gpu_program.cpp"
+    "src/gl/gl_simple_shader.cpp"
     "src/gl/gl_wrapper.cpp"
     "src/gl/opengl_context.cpp"
+    "src/gl/simple_scene.cpp"
 )

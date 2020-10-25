@@ -3,7 +3,7 @@
 #include "gl_wrapper.h"
 
 OpenGlContext::OpenGlContext() :
-	useGlDebugCallback{ false }
+	useGlDebugCallback{ true }
 {
 }
 
@@ -30,6 +30,10 @@ void OpenGlContext::initGL()
 {
 	initGlad();
 	initGlDebugCallback();
+
+	simpleShader = std::make_unique<SimpleShader>();
+
+	simpleScene.Create(windowSize);
 }
 
 void OpenGlContext::initGlfwimGL()
@@ -44,20 +48,14 @@ void OpenGlContext::drawFrameGL()
 	glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//renderState.worldEye = sponzaScene->camera.position;
-	//renderState.ambientLight = sponzaScene->ambientLight;
-	//renderState.pointLight = sponzaScene->pointLight;
-
 	glCullFace(GL_BACK);	// ez a default, de azert inkabb itt hagyom hogy egyertelmu legyen
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
-	// TODO draw
-	//for (auto const& drawable : sponzaScene->drawableList)
-	//{
-	//	drawable->Draw(shadowShader, sponzaScene->camera);
-	//}
+	for (auto const& object3d : simpleScene.drawableObjects) {
+		object3d.Draw(*simpleShader, *camera);
+	}
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);

@@ -729,8 +729,8 @@ void VulkanContext::createDescriptorSetLayout()
 
 void VulkanContext::createGraphicsPipeline()
 {
-	auto vertShaderCode = Utils::readBinaryFile((theRuncfg.shadersDir / "vert.spv").string());
-	auto fragShaderCode = Utils::readBinaryFile((theRuncfg.shadersDir / "frag.spv").string());
+	auto vertShaderCode = Utils::ReadBinaryFile((theRuncfg.shadersDir / "vert.spv").string());
+	auto fragShaderCode = Utils::ReadBinaryFile((theRuncfg.shadersDir / "frag.spv").string());
 
 	auto vertShaderModule = createShaderModule(vertShaderCode);
 	auto fragShaderModule = createShaderModule(fragShaderCode);

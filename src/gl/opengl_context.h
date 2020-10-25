@@ -2,6 +2,9 @@
 
 #include "../camera.h"
 #include "../utils.h"
+#include "gl_simple_shader.h"
+#include "gl_object_3d.h"
+#include "simple_scene.h"
 
 struct OpenGlContext
 {
@@ -20,6 +23,9 @@ private:
 	GLFWwindow* window;
 	Camera* camera;
 	Utils::WindowSize windowSize;
+	std::unique_ptr<SimpleShader> simpleShader;
+
+	SimpleScene simpleScene;
 
 	void initGlad();
 	void initGlDebugCallback();

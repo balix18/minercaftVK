@@ -2,7 +2,8 @@
 
 struct Utils
 {
-	static std::vector<char> readBinaryFile(std::string const& fileName);
+	static std::vector<char> ReadBinaryFile(std::string const& fileName);
+	static std::string ReadTextFile(std::string const& fileName);
 
 	struct GLFWwindowDeleter
 	{
