@@ -2,6 +2,7 @@
 #include <iostream>
 #include <filesystem>
 #include <chrono>
+#include <thread>
 
 namespace fs = std::filesystem;
 using namespace std::chrono;
@@ -85,12 +86,16 @@ namespace ezpz {
     {
         switch (logLevel)
         {
-            case LogLevel::DEBUG:
-                return "DEBUG";
-            case LogLevel::INFO:
-                return "INFO";
+            case LogLevel::FATAL:
+                return "FATAL";
             case LogLevel::ERROR:
                 return "ERROR";
+            case LogLevel::WARN:
+                return "WARNING";
+            case LogLevel::INFO:
+                return "INFO";
+            case LogLevel::DEBUG:
+                return "DEBUG";
             case LogLevel::SERVER:
                 return "SERVER";
             default:
@@ -102,12 +107,16 @@ namespace ezpz {
     {
         switch (logLevel)
         {
-            case LogLevel::DEBUG:
-                return "DBG";
-            case LogLevel::INFO:
-                return "INF";
+            case LogLevel::FATAL:
+                return "FAT";
             case LogLevel::ERROR:
                 return "ERR";
+            case LogLevel::WARN:
+                return "WRN";
+            case LogLevel::INFO:
+                return "INF";
+            case LogLevel::DEBUG:
+                return "DBG";
             case LogLevel::SERVER:
                 return "SRV";
             default:
@@ -182,17 +191,23 @@ namespace ezpz {
                     desc.channels = 0;
                     for (auto c : splitted[1]) {
                         switch (c) {
-                        case 'I':
-                            desc.channels |= LogLevel::INFO;
+                        case 'F':
+                            desc.channels |= LogLevel::FATAL;
                             break;
                         case 'E':
                             desc.channels |= LogLevel::ERROR;
                             break;
-                        case 'S':
-                            desc.channels |= LogLevel::SERVER;
+                        case 'W':
+                            desc.channels |= LogLevel::WARN;
+                            break;
+                        case 'I':
+                            desc.channels |= LogLevel::INFO;
                             break;
                         case 'D':
                             desc.channels |= LogLevel::DEBUG;
+                            break;
+                        case 'S':
+                            desc.channels |= LogLevel::SERVER;
                             break;
                         default:
                             error << "Line " << lineCount << ": '" << c << "' is ignored. Valid characters: I|E|S|D.\n";
@@ -230,15 +245,19 @@ namespace ezpz {
         return error.str();
 	}
 
-    void LogOutputStream::Log(LogLevel logLevel, int tick, const std::string& data) {
+    void LogOutputStream::Log(LogLevel logLevel, int tick, std::thread::id threadId, const std::string& data) {
         if (HasLogLevelBit(desc.channels, logLevel)) {
             auto out = desc.lineFormat;
+
+            std::stringstream tmp;
+            tmp << threadId;
 
             auto t = system_clock::now();
             out = replaceTime(out, t);
             out = replaceString(out, "{{Level}}", theLogger.LogLevelToString(logLevel));
             out = replaceString(out, "{{Tick}}", std::to_string(tick));
             out = replaceString(out, "{{Message}}", data);
+            out = replaceString(out, "{{ThreadId}}", tmp.str());
             os << out << std::endl;
         }
     }
@@ -259,13 +278,14 @@ namespace ezpz {
 
 	void Logger::Log_Impl(LogLevel logLevel, std::string const& str)
 	{
-        memoryLog->Log(logLevel, tick, str);
+        auto id = std::this_thread::get_id();
+        memoryLog->Log(logLevel, tick, id, str);
         for (auto& it : outputLogs) {
-            it->Log(logLevel, tick, str);
+            it->Log(logLevel, tick, id, str);
         }
 	}
 
-    void Logger::SetUsertag(const std::string& tag, const std::string& rep)
+    void Logger::SetUsertag_Impl(const std::string& tag, const std::string& rep)
     {
         std::vector<OutputDescriptor> tmp;
         for (auto& it : outputDescriptors) {
@@ -277,7 +297,7 @@ namespace ezpz {
             it.hasUserTag |= it.lineFormat.find("{$", 0) != std::string::npos;
             
             if (!it.hasUserTag) {
-                AddOutputChannel(std::make_unique<LogOutputFile>(it));
+                AddOutputChannel_Impl(std::make_unique<LogOutputFile>(it));
             } else {
                 tmp.push_back(it);
             }
@@ -286,7 +306,7 @@ namespace ezpz {
         outputDescriptors = std::move(tmp);
     }
 
-    void Logger::AddOutputChannel(std::unique_ptr<ILogOutput> pOutput)
+    void Logger::AddOutputChannel_Impl(std::unique_ptr<ILogOutput> pOutput)
     {
         memoryLog->WriteDataToOutput(*pOutput);
         outputLogs.push_back(std::move(pOutput));

@@ -5,7 +5,9 @@
 #include <fstream>
 #include <ostream>
 #include <sstream>
+#include <mutex>
 #include <functional>
+#include <thread>
 
 #ifdef LOGGER_USING_FMT
 #include <fmt/format.h>
@@ -13,10 +15,12 @@
 
 namespace ezpz {
 	enum LogLevel : unsigned char {
-		DEBUG = 1,
-		INFO = 2,
-		ERROR = 4,
-        SERVER = 8,
+        FATAL = 1,
+        ERROR = 2,
+        WARN = 4,
+		INFO = 8,
+		DEBUG = 16,
+        SERVER = 32,
         ALL = 255
 	};
 	std::ostream& operator<<(std::ostream& os, LogLevel logLevel);
@@ -25,7 +29,7 @@ namespace ezpz {
 
     class ILogOutput {
     public:
-       virtual void Log(LogLevel level, int tick, const std::string& data) = 0;
+       virtual void Log(LogLevel level, int tick, std::thread::id threadId, const std::string& data) = 0;
        virtual void SetVersion(const std::string& strVersion) = 0;
        virtual void SetStats(const std::string& strStats) = 0;
        virtual ~ILogOutput() = default;
@@ -51,7 +55,7 @@ namespace ezpz {
     public:
         LogOutputStream(OutputDescriptor desc, std::ostream& os) : os{os}, desc{desc} {}
         ~LogOutputStream() = default;
-        void Log(LogLevel logLevel, int tick, const std::string& data) override;
+        void Log(LogLevel logLevel, int tick, std::thread::id threadId, const std::string& data) override;
         void SetVersion(const std::string& strVersion) override {
             if (desc.bVersion) os << "[VERSION]\n" << strVersion << std::endl << "[\\VERSION]\n"; 
         }
@@ -75,8 +79,8 @@ namespace ezpz {
     class LogOutputMemory : public ILogOutput {
     public:
         ~LogOutputMemory() = default;
-        void Log(LogLevel logLevel, int tick, const std::string& data) override {
-            logs.push_back(LogData{logLevel, tick, data});
+        void Log(LogLevel logLevel, int tick, std::thread::id threadId, const std::string& data) override {
+            logs.push_back(LogData{logLevel, tick, threadId, data});
         }
 
         void SetVersion(const std::string& strVersion) override {
@@ -90,7 +94,7 @@ namespace ezpz {
         void WriteDataToOutput(ILogOutput& output) const {
             if (!strVersion.empty()) output.SetVersion(strVersion);
             for (auto& it : logs) {
-                output.Log(it.level, it.tick, it.data);
+                output.Log(it.level, it.tick, it.threadId, it.data);
             }
             if (!strStats.empty()) output.SetStats(strStats);
         }
@@ -99,6 +103,7 @@ namespace ezpz {
         struct LogData {
             LogLevel level;
             int tick;
+            std::thread::id threadId;
             std::string data;
         };
 
@@ -147,29 +152,61 @@ namespace ezpz {
         std::vector<std::unique_ptr<ILogOutput>> outputLogs;
         std::vector<OutputDescriptor> outputDescriptors;
 		int tick = -1;
+        mutable std::mutex mutex;
 
 	public:
         std::string Init(const std::string& path);
-        void SetUsertag(const std::string& usertag, const std::string& replacement);
-        void AddOutputChannel(std::unique_ptr<ILogOutput> pOutput);
+        
+        void SetUsertag(const std::string& usertag, const std::string& replacement)
+        {
+#ifdef EZPZLOGGER_USE_LOCK
+            std::lock_guard<std::mutex> _l{mutex};
+#endif
+            SetUsertag_Impl(usertag, replacement);
+        }
+
+        void AddOutputChannel(std::unique_ptr<ILogOutput> pOutput)
+        {
+#ifdef EZPZLOGGER_USE_LOCK
+            std::lock_guard<std::mutex> _l{mutex};
+#endif
+            AddOutputChannel_Impl(std::move(pOutput));
+        }
+
         std::function<std::string(LogLevel)> LogLevelToString = DefaultToString{};
         template <typename... Args> void Log(LogLevel logLevel, Args&&... args) {
 #ifndef LOGGER_USING_FMT
             std::stringstream ss;
             impl::log_impl(ss, args...);
+
+#ifdef EZPZLOGGER_USE_LOCK
+            std::lock_guard<std::mutex> _l{mutex};
+#endif
             Log_Impl(logLevel, ss.str());
 #else
+#ifdef EZPZLOGGER_USE_LOCK
+            std::lock_guard<std::mutex> _l{mutex};
+#endif
             Log_Impl(logLevel, fmt::format(args...));
 #endif
         }
-        template <typename... Args> void LogDebug(Args&&... args) {
-            Log(LogLevel::DEBUG, args...);
+
+        template <typename... Args> void LogFatal(Args&&... args)
+        {
+            Log(LogLevel::FATAL, args...);
+        }
+        template <typename... Args> void LogError(Args&&... args) {
+            Log(LogLevel::ERROR, args...);
+        }
+        template <typename... Args> void LogWarning(Args&&... args)
+        {
+            Log(LogLevel::WARN, args...);
         }
         template <typename... Args> void LogInfo(Args&&... args) {
             Log(LogLevel::INFO, args...);
         }
-        template <typename... Args> void LogError(Args&&... args) {
-            Log(LogLevel::ERROR, args...);
+        template <typename... Args> void LogDebug(Args&&... args) {
+            Log(LogLevel::DEBUG, args...);
         }
         template <typename... Args> void LogServer(Args&&... args) {
             Log(LogLevel::SERVER, args...);
@@ -196,6 +233,8 @@ namespace ezpz {
 
     private:
 		void Log_Impl(LogLevel logLevel, std::string const& str);
+        void AddOutputChannel_Impl(std::unique_ptr<ILogOutput> pOutput);
+        void SetUsertag_Impl(const std::string& usertag, const std::string& replacement);
 	};
 
 	inline Logger& theLogger = Logger::Instance();
