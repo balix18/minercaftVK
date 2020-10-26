@@ -25,5 +25,9 @@ struct GlWrapper
 	static std::string GetString(GLenum const name);
 	static GLint GetIntegerv(GLenum const parameterName);
 	static GLint GetProgramiv(GLuint const programHandle, GLenum const parameterName);
+
+	static std::string ResolveDebugSource(GLenum source);
+	static std::string ResolveDebugType(GLenum type);
+	static std::string ResolveDebugSeverity(GLenum severity);
 };
 

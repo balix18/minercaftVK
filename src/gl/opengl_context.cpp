@@ -86,9 +86,16 @@ void OpenGlContext::initGlDebugCallback()
 {
 	if (!useGlDebugCallback) return;
 
-	auto debugCallback = (GLDEBUGPROC)[](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-		std::string errorWrapper = type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "";
-		theLogger.LogError("Gl debug callback: {} type = {:#x}, severity = {:#x}, message = {}", errorWrapper, type, severity, message);
+	auto debugCallback = (GLDEBUGPROC)[](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+	{
+		static std::unordered_set<uint> dontCareIds = { 0x20071 };
+		if (dontCareIds.find(id) != dontCareIds.end()) return;
+
+		auto rType = GlWrapper::ResolveDebugType(type);
+		auto rSeverity = GlWrapper::ResolveDebugSeverity(severity);
+		auto rSource = GlWrapper::ResolveDebugSource(source);
+
+		theLogger.LogError("Debug message callback:\n  - id: {:#x}\n  - type: {}\n  - severity: {}\n  - souce = {}\n  - message = {}", id, rType, rSeverity, rSource, message);
 	};
 
 	glEnable(GL_DEBUG_OUTPUT);
