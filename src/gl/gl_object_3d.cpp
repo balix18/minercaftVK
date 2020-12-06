@@ -1,7 +1,8 @@
 #include "gl_object_3d.h"
 
-#include "gl_gpu_program.h"
 #include "../camera.h"
+#include "gl_gpu_program.h"
+#include "render_state.h"
 
 VertexData::VertexData() :
 	vertexCount{ 0 },
@@ -70,10 +71,21 @@ void Mesh::UploadVertices(std::unordered_map<VertexLayout, int>& attribLocations
 
 void Object3D::Draw(GpuProgram const& gpuProgram, Camera const& camera) const
 {
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	glm::mat4 identity{ 1.0f };
+	theRenderState.model = glm::rotate(identity, time * glm::radians(22.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+	theRenderState.view = camera.V();
+	theRenderState.proj = camera.P();
+
 	gpuProgram.Bind();
 
 	for (auto const& mesh : meshes)
 	{
+		theRenderState.surfaceTexture = mesh.surfaceTexture.get();
 		gpuProgram.BindMaterial();
 
 		glBindVertexArray(mesh.vao);

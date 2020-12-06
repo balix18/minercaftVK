@@ -18,12 +18,18 @@ void OpenGlContext::initCameraGL(Camera* newCamera)
 	camera = newCamera;
 	auto& cam = *camera;
 
-	cam.Init(true);
+	cam.Init(false);
 	cam.UpdatePosition(glm::vec3(2.0f, 2.0f, 2.0f));
 	cam.UpdateDirection(glm::vec3(0.0f, 0.0f, 0.0f) - cam.GetPosition()); // hogy az origoba nezzen
 	cam.parameters.clippingDistance = { 0.1f, 10.0f };
 
-	// TODO valszeg kell a parameters.UpdateWindowSize-t hivni kezzel a gl-ben
+	// opengl eseten meg kell hivni a parameters.UpdateWindowSize-t kezzel
+	cam.parameters.UpdateWindowSize((float)windowSize.width, (float)windowSize.height);
+
+	// opengl eseten a context-et is frissiteni kell
+	theInputManager.registerWindowResizeHandler([&](int width, int height) {
+		windowSize = Utils::WindowSize{ width, height };
+	});
 }
 
 void OpenGlContext::initGL()
@@ -45,7 +51,7 @@ void OpenGlContext::drawFrameGL()
 {
 	glViewport(0, 0, windowSize.width, windowSize.height);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glCullFace(GL_BACK);	// ez a default, de azert inkabb itt hagyom hogy egyertelmu legyen

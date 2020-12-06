@@ -79,7 +79,9 @@ void App::initWindow()
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 	}
 
-	auto glfwWindow = glfwCreateWindow(windowSize.width, windowSize.height, "minercaftVK-App", nullptr, nullptr);
+	auto title = fmt::format("minercaftVK-App (renderer: {})", theRuncfg.currentRenderer);
+
+	auto glfwWindow = glfwCreateWindow(windowSize.width, windowSize.height, title.c_str(), nullptr, nullptr);
 	if (!glfwWindow) {
 		theLogger.LogError("Failed to open GLFW window");
 		glfwTerminate();

@@ -3,6 +3,8 @@
 struct Camera;
 struct GpuProgram;
 
+#include "surface_texture.h"
+
 enum struct VertexLayout
 {
 	POSITION,
@@ -36,6 +38,7 @@ struct Mesh
 
 	std::unordered_map<VertexLayout, int> vertexHandles;
 	VertexData vertexData;
+	std::shared_ptr<SurfaceTexture> surfaceTexture;
 
 	int indicesCount;
 	std::vector<uint> indices;

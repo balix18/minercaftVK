@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../camera.h"
+#include "../model_loader.h"
 
 struct QueueFamilyIndices
 {
@@ -15,23 +16,6 @@ struct SwapChainSupportDetails
 	vk::SurfaceCapabilitiesKHR capabilities;
 	std::vector<vk::SurfaceFormatKHR> formats;
 	std::vector<vk::PresentModeKHR> presentModes;
-};
-
-struct Vertex
-{
-	glm::vec3 pos;
-	glm::vec3 color;
-	glm::vec2 texCoord;
-
-	static vk::VertexInputBindingDescription getBindingDescription();
-	static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions();
-
-	bool operator==(const Vertex& other) const;
-
-	struct Hasher
-	{
-		std::size_t operator()(Vertex const& vertex) const noexcept;
-	};
 };
 
 struct UniformBufferObject
@@ -161,4 +145,6 @@ private:
 	void updateUniformBuffer(uint32_t currentImage);
 	void transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t mipLevels);
 	vk::SampleCountFlagBits getMaxUsableSampleCount();
+	vk::VertexInputBindingDescription getVertexBindingDescription();
+	std::array<vk::VertexInputAttributeDescription, 3> getVertexAttributeDescriptions();
 };

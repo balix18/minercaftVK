@@ -750,8 +750,8 @@ void VulkanContext::createGraphicsPipeline()
 		fragShaderStageInfo
 	};
 
-	auto bindingDesc = Vertex::getBindingDescription();
-	auto attributeDesc = Vertex::getAttributeDescriptions();
+	auto bindingDesc = getVertexBindingDescription();
+	auto attributeDesc = getVertexAttributeDescriptions();
 
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -1011,44 +1011,13 @@ void VulkanContext::createImage(uint32_t width, uint32_t height, uint32_t mipLev
 
 void VulkanContext::loadModel()
 {
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warn, err;
-
 	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFileName.c_str())) {
-		throw std::runtime_error(warn + err);
-	}
+	ModelLoader modelLoader;
+	auto loadedModel = modelLoader.Load(modelFileName);
 
-	std::unordered_map<Vertex, uint32_t, Vertex::Hasher> uniqueVertices;
-
-	for (auto const& shape : shapes) {
-		for (auto const& index : shape.mesh.indices) {
-			Vertex vertex{};
-
-			vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-
-			vertex.texCoord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
-
-			vertex.color = { 1.0f, 1.0f, 1.0f };
-
-			if (uniqueVertices.find(vertex) == uniqueVertices.end()) {
-				uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-				vertices.push_back(vertex);
-			}
-
-			indices.push_back(uniqueVertices[vertex]);
-		}
-	}
+	vertices = std::move(loadedModel.vertices);
+	indices = std::move(loadedModel.indices);
 }
 
 void VulkanContext::createVertexBuffer()
@@ -1564,13 +1533,7 @@ vk::SampleCountFlagBits VulkanContext::getMaxUsableSampleCount()
 	return vk::SampleCountFlagBits::e1;
 }
 
-bool QueueFamilyIndices::isComplete()
-{
-	return graphicsFamily.has_value()
-		&& presentFamily.has_value();
-}
-
-vk::VertexInputBindingDescription Vertex::getBindingDescription()
+vk::VertexInputBindingDescription VulkanContext::getVertexBindingDescription()
 {
 	vk::VertexInputBindingDescription bindingDescription{};
 	bindingDescription.binding = 0;
@@ -1580,7 +1543,7 @@ vk::VertexInputBindingDescription Vertex::getBindingDescription()
 	return bindingDescription;
 }
 
-std::array<vk::VertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions()
+std::array<vk::VertexInputAttributeDescription, 3> VulkanContext::getVertexAttributeDescriptions()
 {
 	std::array<vk::VertexInputAttributeDescription, 3> attributeDescriptions{};
 
@@ -1605,18 +1568,8 @@ std::array<vk::VertexInputAttributeDescription, 3> Vertex::getAttributeDescripti
 	return attributeDescriptions;
 }
 
-bool Vertex::operator==(const Vertex& other) const
+bool QueueFamilyIndices::isComplete()
 {
-	return pos == other.pos
-		&& color == other.color
-		&& texCoord == other.texCoord;
-}
-
-std::size_t Vertex::Hasher::operator()(Vertex const& vertex) const noexcept
-{
-	std::size_t seed = 0;
-	boost::hash_combine(seed, std::hash<glm::vec3>()(vertex.pos));
-	boost::hash_combine(seed, std::hash<glm::vec3>()(vertex.color));
-	boost::hash_combine(seed, std::hash<glm::vec2>()(vertex.texCoord));
-	return seed;
+	return graphicsFamily.has_value()
+		&& presentFamily.has_value();
 }

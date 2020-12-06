@@ -21,6 +21,7 @@ struct Camera
 
 	struct Parameters
 	{
+		glm::vec2 windowSize;
 		struct { float horizontal, vertical; } fov;
 		float aspectRatio;
 		struct { float zNear, zFar; } clippingDistance;

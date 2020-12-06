@@ -58,6 +58,8 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/main.cpp"
     "src/app.cpp"
     "src/camera.cpp"
+    "src/image_cache.cpp"
+    "src/model_loader.cpp"
     "src/utils.cpp"
     "src/runcfg.cpp"
     "src/vk/vulkan_context.cpp"
@@ -66,5 +68,6 @@ target_sources(${PROJECT_NAME} PRIVATE
     "src/gl/gl_simple_shader.cpp"
     "src/gl/gl_wrapper.cpp"
     "src/gl/opengl_context.cpp"
+    "src/gl/render_state.cpp"
     "src/gl/simple_scene.cpp"
-)
+    "src/gl/surface_texture.cpp")

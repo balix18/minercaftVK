@@ -132,7 +132,13 @@ void Camera::RegisterInputHandlers()
 		theLogger.LogInfo("CameraPos: {}, CameraDir: {}", glm::to_string(position), glm::to_string(direction));
 	});
 
-	// nem kell a registerWindowResizeHandler-re kezzel itt is raakasztkodni, mert a createSwapChain beallitja a parametereket
+	if (!isVulkan) {
+		// vulkan-nal nem kell a registerWindowResizeHandler-re kezzel itt raakasztkodni, mert a createSwapChain beallitja a parametereket
+
+		theInputManager.registerWindowResizeHandler([&](int width, int height) {
+			parameters.UpdateWindowSize((float)width, (float)height);
+		});
+	}
 }
 
 glm::mat4 Camera::V() const
@@ -178,6 +184,7 @@ Camera::Parameters::Parameters():
 
 void Camera::Parameters::UpdateWindowSize(float width, float height)
 {
+	windowSize = glm::vec2{ width, height };
 	aspectRatio = width / height;
 	fov.vertical = glm::radians(30.0f);
 	fov.horizontal = 2.0f * atanf(tanf(fov.vertical / 2.0f) * aspectRatio);

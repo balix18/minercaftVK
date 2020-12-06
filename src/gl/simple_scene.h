@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../model_loader.h"
 #include "../utils.h"
 #include "gl_object_3d.h"
+#include "surface_texture.h"
 
 struct SimpleScene
 {
@@ -11,4 +13,7 @@ struct SimpleScene
 	std::vector<Object3D> drawableObjects;
 
 	void Create(Utils::WindowSize windowSize);
+
+private:
+	LoadedModel LoadVikingRoom();
 };
