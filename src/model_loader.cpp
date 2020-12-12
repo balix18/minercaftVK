@@ -29,6 +29,15 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 		throw std::runtime_error(warn + err);
 	}
 
+	if (!warn.empty()) {
+		theLogger.LogWarning("LoadObj: {}\n", warn);
+	}
+
+	if (!err.empty()) {
+		theLogger.LogError("LoadObj: {}\n", err);
+		throw std::runtime_error(err);
+	}
+
 	CheckMaterialIds(shapes);
 
 	LoadedModel loadedModel;
