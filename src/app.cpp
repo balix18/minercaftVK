@@ -145,14 +145,27 @@ void App::mainLoop()
 		theInputManager.pollEvents();
 
 		auto currentTime = static_cast<float>(glfwGetTime());
-		camera.Update(currentTime);
-		camera.Control();
+		animate(currentTime);
 
 		drawFrame();
 	}
 
 	if (IsVulkan()) {
 		vkCtx.GetDevice().waitIdle();
+	}
+}
+
+void App::animate(float currentTime)
+{
+	camera.Update(currentTime);
+	camera.Control();
+
+	if (IsVulkan()) {
+		vkCtx.animateVK(currentTime);
+	}
+
+	if (IsOpenGl()) {
+		glCtx.animateGL(currentTime);
 	}
 }
 

@@ -32,6 +32,7 @@ private:
 	void initCamera();
 	void initContext();
 	void cleanupWindow();
+	void animate(float currentTime);
 	void drawFrame();
 	void mainLoop();
 	void cleanup();

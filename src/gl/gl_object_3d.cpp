@@ -4,6 +4,14 @@
 #include "gl_gpu_program.h"
 #include "render_state.h"
 
+Transformation::Transformation() :
+	translate{ 0.0f, 0.0f, 0.0f },
+	scale{ 1.0f, 1.0f, 1.0f },
+	rotate{ 0.0f },
+	rotationAxis{ 0.0f, 1.0f, 0.0f }
+{
+}
+
 VertexData::VertexData() :
 	vertexCount{ 0 },
 	cleared{ false }
@@ -77,7 +85,11 @@ void Object3D::Draw(GpuProgram const& gpuProgram, Camera const& camera) const
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	glm::mat4 identity{ 1.0f };
-	theRenderState.model = glm::rotate(identity, time * glm::radians(22.5f), glm::vec3(0.0f, 1.0f, 0.0f));
+	auto const& translate = glm::translate(animatedTransformation.translate);
+	auto const& rotate = glm::rotate(identity, animatedTransformation.rotate, animatedTransformation.rotationAxis);
+	auto const& scale = glm::scale(animatedTransformation.scale);
+
+	theRenderState.model = translate * rotate * scale;
 	theRenderState.view = camera.V();
 	theRenderState.proj = camera.P();
 

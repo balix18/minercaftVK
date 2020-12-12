@@ -21,7 +21,7 @@ void OpenGlContext::initCameraGL(Camera* newCamera)
 	cam.Init(false);
 	cam.UpdatePosition(glm::vec3(2.0f, 2.0f, 2.0f));
 	cam.UpdateDirection(glm::vec3(0.0f, 0.0f, 0.0f) - cam.GetPosition()); // hogy az origoba nezzen
-	cam.parameters.clippingDistance = { 0.1f, 10.0f };
+	cam.parameters.clippingDistance = { 0.1f, 100.0f };
 
 	// opengl eseten meg kell hivni a parameters.UpdateWindowSize-t kezzel
 	cam.parameters.UpdateWindowSize((float)windowSize.width, (float)windowSize.height);
@@ -45,6 +45,15 @@ void OpenGlContext::initGL()
 void OpenGlContext::initGlfwimGL()
 {
 	theInputManager.initialize(window);
+}
+
+void OpenGlContext::animateGL(float currentTime)
+{
+	static float lastTime = 0.0;
+	auto const deltaTime = currentTime - lastTime;
+	lastTime = currentTime;
+
+	simpleScene.Animate(currentTime, deltaTime);
 }
 
 void OpenGlContext::drawFrameGL()

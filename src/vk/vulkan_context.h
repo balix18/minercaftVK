@@ -33,6 +33,7 @@ struct VulkanContext
 	void initVK();
 	void initGlfwimVK();
 	void cleanupVK();
+	void animateVK(float currentTime);
 	void drawFrameVK();
 	void initCameraVK(Camera* newCamera);
 

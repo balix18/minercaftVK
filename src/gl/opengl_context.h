@@ -14,6 +14,7 @@ struct OpenGlContext
 	void initCameraGL(Camera* newCamera);
 	void initGL();
 	void initGlfwimGL();
+	void animateGL(float currentTime);
 	void drawFrameGL();
 	void cleanupGL();
 

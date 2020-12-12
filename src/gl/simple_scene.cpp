@@ -56,12 +56,27 @@ void SimpleScene::Create(Utils::WindowSize windowSize)
 
 	// erato
 	{
-		//auto loadedModel = LoadErato();
+		//Object3D erato;
+		//erato.Create(LoadErato());
+		//drawableObjects.push_back(std::move(erato));
 	}
 
 	// sponza
 	{
-		//auto loadedModel = LoadSponza();
+		//Object3D sponza;
+		//sponza.originalTransformation.scale = glm::vec3(0.01f);
+		//sponza.Create(LoadSponza());
+		//drawableObjects.push_back(std::move(sponza));
+	}
+}
+
+void SimpleScene::Animate(float currentTime, float deltaTime)
+{
+	for (auto& drawableObject : drawableObjects) {
+		drawableObject.animatedTransformation.translate = drawableObject.originalTransformation.translate;
+		drawableObject.animatedTransformation.scale = drawableObject.originalTransformation.scale;
+		drawableObject.animatedTransformation.rotate = currentTime * glm::radians(22.5f);
+		drawableObject.animatedTransformation.rotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 	}
 }
 

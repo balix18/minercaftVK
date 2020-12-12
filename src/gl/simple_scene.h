@@ -13,6 +13,7 @@ struct SimpleScene
 	std::vector<Object3D> drawableObjects;
 
 	void Create(Utils::WindowSize windowSize);
+	void Animate(float currentTime, float deltaTime);
 
 private:
 	LoadedModel LoadVikingRoom();

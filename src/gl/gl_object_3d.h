@@ -16,6 +16,16 @@ enum struct VertexLayout
 	INDEX
 };
 
+struct Transformation
+{
+	glm::vec3 translate;
+	glm::vec3 scale;
+	float rotate;
+	glm::vec3 rotationAxis;
+
+	Transformation();
+};
+
 struct VertexData
 {
 	int vertexCount;
@@ -54,6 +64,7 @@ struct Mesh
 struct Object3D
 {
 	std::vector<Mesh> meshes;
+	Transformation originalTransformation, animatedTransformation;
 
 	Object3D() = default;
 	virtual ~Object3D() = default;

@@ -127,6 +127,11 @@ void VulkanContext::cleanupVK()
 	instance.destroy();
 }
 
+void VulkanContext::animateVK(float currentTime)
+{
+	// TODO
+}
+
 void VulkanContext::drawFrameVK()
 {
 	auto noTimeout = std::numeric_limits<uint64_t>::max();
