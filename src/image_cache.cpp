@@ -17,7 +17,7 @@ Image* ImageCache::Load(std::string const& path)
 	}
 
 	// Még nincs betöltve az image, tehát be kell tölteni
-	theLogger.LogInfo("Loading image (stbi): {}\n", path);
+	theLogger.LogInfo("Loading image (stbi): {}", path);
 
 	auto image = std::make_unique<Image>();
 	image->path = path;

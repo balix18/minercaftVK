@@ -894,7 +894,7 @@ void VulkanContext::createDepthResources()
 
 void VulkanContext::createTextureImage()
 {
-	auto fileName = (theRuncfg.texturesDir / "viking_room.png").string();
+	auto fileName = (theRuncfg.texturesDir / "viking_room" / "viking_room.png").string();
 
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -1011,7 +1011,7 @@ void VulkanContext::createImage(uint32_t width, uint32_t height, uint32_t mipLev
 
 void VulkanContext::loadModel()
 {
-	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
+	auto modelFileName = (theRuncfg.texturesDir / "viking_room" / "viking_room.obj").string();
 
 	ModelLoader modelLoader;
 	auto loadedModel = modelLoader.Load(modelFileName, "");

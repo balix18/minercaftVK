@@ -85,7 +85,7 @@ void SimpleScene::Create(Utils::WindowSize windowSize)
 		mesh.UploadVertices(attribLocations);
 		mesh.vertexData.ClearAll();
 
-		auto fileName = (theRuncfg.texturesDir / "viking_room.png").string();
+		auto fileName = loadedModel.materials[0].diffuseTexture;
 		auto image = theImageCache.Load(fileName);
 
 		int textureUnit = 0;
@@ -107,16 +107,19 @@ void SimpleScene::Create(Utils::WindowSize windowSize)
 
 LoadedModel SimpleScene::LoadVikingRoom()
 {
-	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
+	auto baseDir = theRuncfg.texturesDir / "viking_room";
+	auto modelFileName = (baseDir / "viking_room.obj").string();
+	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
-	return modelLoader.Load(modelFileName, "");
+	return modelLoader.Load(modelFileName, mtlDirectory);
 }
 
 LoadedModel SimpleScene::LoadErato()
 {
-	auto modelFileName = (theRuncfg.texturesDir / "erato" / "erato.obj").string();
-	auto mtlDirectory = (theRuncfg.texturesDir / "erato").string();
+	auto baseDir = theRuncfg.texturesDir / "erato";
+	auto modelFileName = (baseDir / "erato.obj").string();
+	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
 	return modelLoader.Load(modelFileName, mtlDirectory);
@@ -124,8 +127,9 @@ LoadedModel SimpleScene::LoadErato()
 
 LoadedModel SimpleScene::LoadSponza()
 {
-	auto modelFileName = (theRuncfg.texturesDir / "sponza" / "sponza.obj").string();
-	auto mtlDirectory = (theRuncfg.texturesDir / "sponza").string();
+	auto baseDir = theRuncfg.texturesDir / "sponza";
+	auto modelFileName = (baseDir / "sponza.obj").string();
+	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
 	return modelLoader.Load(modelFileName, mtlDirectory);

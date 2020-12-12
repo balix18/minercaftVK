@@ -25,9 +25,17 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
 
+	theLogger.LogInfo("Loading {}", fileName);
+
+	auto timerStart = std::chrono::high_resolution_clock::now();
+
 	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, fileName.c_str(), mtlDirectory.c_str())) {
 		throw std::runtime_error(warn + err);
 	}
+
+	auto timerStop = std::chrono::high_resolution_clock::now();
+	auto loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(timerStop - timerStart).count();
+	theLogger.LogInfo("Loading {} finished in {} ms", fileName, loadTime);
 
 	if (!warn.empty()) {
 		theLogger.LogWarning("LoadObj: {}\n", warn);
@@ -44,7 +52,10 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 
 	for (auto const& material : materials)
 	{
-		TinyObjMaterial newMaterial(material.diffuse_texname);
+		fs::path mtlDirectoryPath = mtlDirectory;
+		auto fullDiffuse = HandleDefaultTexure(mtlDirectoryPath / material.diffuse_texname);
+
+		TinyObjMaterial newMaterial(fullDiffuse);
 		loadedModel.materials.push_back(std::move(newMaterial));
 	}
 
@@ -89,6 +100,8 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 		loadedModel.shapes.push_back(std::move(newShape));
 	}
 
+	LoadMaterialTextures(loadedModel.materials);
+
 	return loadedModel;
 }
 
@@ -104,6 +117,22 @@ void ModelLoader::CheckMaterialIds(std::vector<tinyobj::shape_t> const& shapes)
 			}
 		}
 	}
+}
+
+void ModelLoader::LoadMaterialTextures(std::vector<TinyObjMaterial> const& materials)
+{
+	for (auto const& material : materials) {
+		theImageCache.Load(material.diffuseTexture);
+	}
+}
+
+std::string ModelLoader::HandleDefaultTexure(fs::path const& path)
+{
+	if (fs::is_regular_file(path)) {
+		return path.string();
+	}
+
+	return (theRuncfg.texturesDir / "helper" / "default_diffuse.tga").string();
 }
 
 TinyObjMaterial::TinyObjMaterial(std::string const& diffuseTexture)

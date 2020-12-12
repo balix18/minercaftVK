@@ -1,6 +1,9 @@
 #pragma once
 #include "pch.h"
 
+#include "image_cache.h"
+#include "runcfg.h"
+
 struct Vertex
 {
 	glm::vec3 pos;
@@ -39,4 +42,6 @@ struct ModelLoader
 {
 	LoadedModel Load(std::string const& fileName, std::string const& mtlDirectory, bool flipWinding = false);
 	void CheckMaterialIds(std::vector<tinyobj::shape_t> const& shapes);
+	void LoadMaterialTextures(std::vector<TinyObjMaterial> const& materials);
+	std::string HandleDefaultTexure(fs::path const& path);
 };
