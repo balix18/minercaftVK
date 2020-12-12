@@ -16,4 +16,7 @@ struct SimpleScene
 
 private:
 	LoadedModel LoadVikingRoom();
+	LoadedModel LoadErato();
+	LoadedModel LoadSponza();
+	void ConvertToMesh(Mesh& mesh, LoadedModel const& loadedModel);
 };

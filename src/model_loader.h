@@ -15,13 +15,28 @@ struct Vertex
 	};
 };
 
-struct LoadedModel
+struct TinyObjShape
 {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
+	int materialId;
+};
+
+struct TinyObjMaterial
+{
+	std::string diffuseTexture;
+
+	TinyObjMaterial(std::string const& diffuseTexture);
+};
+
+struct LoadedModel
+{
+	std::vector<TinyObjShape> shapes;
+	std::vector<TinyObjMaterial> materials;
 };
 
 struct ModelLoader
 {
-	LoadedModel Load(std::string const& fileName, bool flipWinding = false);
+	LoadedModel Load(std::string const& fileName, std::string const& mtlDirectory, bool flipWinding = false);
+	void CheckMaterialIds(std::vector<tinyobj::shape_t> const& shapes);
 };

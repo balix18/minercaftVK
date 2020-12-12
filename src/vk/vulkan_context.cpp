@@ -1014,10 +1014,13 @@ void VulkanContext::loadModel()
 	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
 
 	ModelLoader modelLoader;
-	auto loadedModel = modelLoader.Load(modelFileName);
+	auto loadedModel = modelLoader.Load(modelFileName, "");
 
-	vertices = std::move(loadedModel.vertices);
-	indices = std::move(loadedModel.indices);
+	// TODO only works with shape 0
+	auto const& shape = loadedModel.shapes[0];
+
+	vertices = std::move(shape.vertices);
+	indices = std::move(shape.indices);
 }
 
 void VulkanContext::createVertexBuffer()

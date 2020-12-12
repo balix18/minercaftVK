@@ -80,27 +80,29 @@ void SimpleScene::Create(Utils::WindowSize windowSize)
 	// viking room
 	{
 		auto loadedModel = LoadVikingRoom();
+		ConvertToMesh(mesh, loadedModel);
 
-		mesh.vertexData.vertexCount = (int)loadedModel.vertices.size();
-		for (auto i = 0; i < loadedModel.vertices.size(); i++) {
-			mesh.vertexData.positions.push_back(loadedModel.vertices[i].pos);
-			mesh.vertexData.uvs.push_back(loadedModel.vertices[i].texCoord);
-		}
+		mesh.UploadVertices(attribLocations);
+		mesh.vertexData.ClearAll();
 
-		mesh.indicesCount = (int)loadedModel.indices.size();
-		mesh.indices = std::move(loadedModel.indices);
+		auto fileName = (theRuncfg.texturesDir / "viking_room.png").string();
+		auto image = theImageCache.Load(fileName);
+
+		int textureUnit = 0;
+		mesh.surfaceTexture = std::make_shared<SurfaceTexture>(SurfaceTexture::Type::AMBIENT, fileName, image, 0);
+
+		drawableObjects.push_back(std::move(triangle));
 	}
 
-	mesh.UploadVertices(attribLocations);
-	mesh.vertexData.ClearAll();
+	// erato
+	{
+		//auto loadedModel = LoadErato();
+	}
 
-	auto fileName = (theRuncfg.texturesDir / "viking_room.png").string();
-	auto image = theImageCache.Load(fileName);
-
-	int textureUnit = 0;
-	mesh.surfaceTexture = std::make_shared<SurfaceTexture>(SurfaceTexture::Type::AMBIENT, fileName, image, 0);
-
-	drawableObjects.push_back(std::move(triangle));
+	// sponza
+	{
+		auto loadedModel = LoadSponza();
+	}
 }
 
 LoadedModel SimpleScene::LoadVikingRoom()
@@ -108,6 +110,39 @@ LoadedModel SimpleScene::LoadVikingRoom()
 	auto modelFileName = (theRuncfg.texturesDir / "viking_room.obj").string();
 
 	ModelLoader modelLoader;
-	return modelLoader.Load(modelFileName);
+	return modelLoader.Load(modelFileName, "");
+}
+
+LoadedModel SimpleScene::LoadErato()
+{
+	auto modelFileName = (theRuncfg.texturesDir / "erato" / "erato.obj").string();
+	auto mtlDirectory = (theRuncfg.texturesDir / "erato").string();
+
+	ModelLoader modelLoader;
+	return modelLoader.Load(modelFileName, mtlDirectory);
+}
+
+LoadedModel SimpleScene::LoadSponza()
+{
+	auto modelFileName = (theRuncfg.texturesDir / "sponza" / "sponza.obj").string();
+	auto mtlDirectory = (theRuncfg.texturesDir / "sponza").string();
+
+	ModelLoader modelLoader;
+	return modelLoader.Load(modelFileName, mtlDirectory);
+}
+
+void SimpleScene::ConvertToMesh(Mesh& mesh, LoadedModel const& loadedModel)
+{
+	// TODO only works with shape 0
+	auto const& shape = loadedModel.shapes[0];
+
+	mesh.vertexData.vertexCount = (int)shape.vertices.size();
+	for (auto i = 0; i < shape.vertices.size(); i++) {
+		mesh.vertexData.positions.push_back(shape.vertices[i].pos);
+		mesh.vertexData.uvs.push_back(shape.vertices[i].texCoord);
+	}
+
+	mesh.indicesCount = (int)shape.indices.size();
+	mesh.indices = std::move(shape.indices);
 }
 
