@@ -110,6 +110,10 @@ void ModelLoader::CheckMaterialIds(std::vector<tinyobj::shape_t> const& shapes)
 	for (auto const& shape : shapes)
 	{
 		auto firstMaterialId = shape.mesh.material_ids[0];
+		if (firstMaterialId == -1) {
+			throw std::runtime_error("no material");
+		}
+
 		for (int materialIdIdx = 1; materialIdIdx < shape.mesh.material_ids.size(); materialIdIdx++) {
 			auto materialId = shape.mesh.material_ids[materialIdIdx];
 			if (materialId != firstMaterialId) {

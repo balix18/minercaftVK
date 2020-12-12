@@ -92,3 +92,61 @@ void Object3D::Draw(GpuProgram const& gpuProgram, Camera const& camera) const
 		glDrawElements(GL_TRIANGLES, mesh.indicesCount, GL_UNSIGNED_INT, nullptr);
 	}
 }
+
+void Object3D::Create(LoadedModel const& loadedModel)
+{
+	static std::unordered_map<VertexLayout, int> attribLocations = {
+		{ VertexLayout::POSITION, 0 },
+		{ VertexLayout::NORMAL, 1 },
+		{ VertexLayout::UV, 2 },
+		{ VertexLayout::TANGENT, 3 },
+		{ VertexLayout::BITANGENT, 4 },
+	};
+
+	std::vector<uint> vaos;
+	vaos.resize((int)loadedModel.shapes.size());
+	glGenVertexArrays((int)loadedModel.shapes.size(), vaos.data());
+
+	for (int i = 0; i < loadedModel.shapes.size(); i++)
+	{
+		auto& mesh = meshes.emplace_back();
+		mesh.Init(vaos[i]);
+
+		glBindVertexArray(mesh.vao);
+
+		std::vector<uint> bufferList;
+		bufferList.resize(attribLocations.size() + 1);
+
+		glGenBuffers((int)bufferList.size(), bufferList.data());
+		mesh.vertexHandles[VertexLayout::POSITION] = bufferList[0];
+		mesh.vertexHandles[VertexLayout::NORMAL] = bufferList[1];
+		mesh.vertexHandles[VertexLayout::UV] = bufferList[2];
+		mesh.vertexHandles[VertexLayout::TANGENT] = bufferList[3];
+		mesh.vertexHandles[VertexLayout::BITANGENT] = bufferList[4];
+		mesh.vertexHandles[VertexLayout::INDEX] = bufferList[5];
+
+		auto const& shape = loadedModel.shapes[i];
+		ConvertToMesh(mesh, shape);
+
+		mesh.UploadVertices(attribLocations);
+		mesh.vertexData.ClearAll();
+
+		auto& material = loadedModel.materials[shape.materialId];
+		auto image = theImageCache.Load(material.diffuseTexture);
+
+		int diffuseTextureUnit = 0;
+		mesh.surfaceTexture = std::make_shared<SurfaceTexture>(SurfaceTexture::Type::DIFFUSE, image->path, image, diffuseTextureUnit);
+	}
+}
+
+void Object3D::ConvertToMesh(Mesh& mesh, TinyObjShape const& shape)
+{
+	mesh.vertexData.vertexCount = (int)shape.vertices.size();
+	for (auto i = 0; i < shape.vertices.size(); i++) {
+		mesh.vertexData.positions.push_back(shape.vertices[i].pos);
+		mesh.vertexData.uvs.push_back(shape.vertices[i].texCoord);
+	}
+
+	mesh.indicesCount = (int)shape.indices.size();
+	mesh.indices = std::move(shape.indices);
+}

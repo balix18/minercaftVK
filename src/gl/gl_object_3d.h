@@ -4,6 +4,7 @@ struct Camera;
 struct GpuProgram;
 
 #include "surface_texture.h"
+#include "../model_loader.h"
 
 enum struct VertexLayout
 {
@@ -58,5 +59,9 @@ struct Object3D
 	virtual ~Object3D() = default;
 
 	void Draw(GpuProgram const& gpuProgram, Camera const& camera) const;
+	void Create(LoadedModel const& loadedModel);
+
+private:
+	void ConvertToMesh(Mesh& mesh, TinyObjShape const& shape);
 };
 
