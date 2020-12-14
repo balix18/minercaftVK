@@ -19,4 +19,5 @@ private:
 	LoadedModel LoadVikingRoom();
 	LoadedModel LoadErato();
 	LoadedModel LoadSponza();
+	LoadedModel LoadDragon();
 };

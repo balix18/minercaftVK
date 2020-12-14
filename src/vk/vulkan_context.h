@@ -148,4 +148,7 @@ private:
 	vk::SampleCountFlagBits getMaxUsableSampleCount();
 	vk::VertexInputBindingDescription getVertexBindingDescription();
 	std::array<vk::VertexInputAttributeDescription, 3> getVertexAttributeDescriptions();
+
+	LoadedModel loadVikingRoom();
+	LoadedModel LoadDragon();
 };

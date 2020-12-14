@@ -68,6 +68,13 @@ void SimpleScene::Create(Utils::WindowSize windowSize)
 		//sponza.Create(LoadSponza());
 		//drawableObjects.push_back(std::move(sponza));
 	}
+
+	// dragon
+	{
+		// Object3D dragon;
+		// dragon.Create(LoadDragon());
+		// drawableObjects.push_back(std::move(dragon));
+	}
 }
 
 void SimpleScene::Animate(float currentTime, float deltaTime)
@@ -108,4 +115,17 @@ LoadedModel SimpleScene::LoadSponza()
 
 	ModelLoader modelLoader;
 	return modelLoader.Load(modelFileName, mtlDirectory, ModelLoader::LoadSettings{});
+}
+
+LoadedModel SimpleScene::LoadDragon()
+{
+	auto baseDir = theRuncfg.texturesDir / "dragon";
+	auto modelFileName = (baseDir / "dragon.obj").string();
+	auto mtlDirectory = baseDir.string();
+
+	ModelLoader::LoadSettings loadSettings;
+	loadSettings.ignoreMissingUVs = true;
+
+	ModelLoader modelLoader;
+	return modelLoader.Load(modelFileName, mtlDirectory, loadSettings);
 }

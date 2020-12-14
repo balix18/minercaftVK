@@ -899,7 +899,8 @@ void VulkanContext::createDepthResources()
 
 void VulkanContext::createTextureImage()
 {
-	auto fileName = (theRuncfg.texturesDir / "viking_room" / "viking_room.png").string();
+	//auto fileName = (theRuncfg.texturesDir / "viking_room" / "viking_room.png").string();
+	auto fileName = (theRuncfg.texturesDir / "dragon" / "textures" / "default_green.png").string();
 
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -1014,12 +1015,32 @@ void VulkanContext::createImage(uint32_t width, uint32_t height, uint32_t mipLev
 	device.bindImageMemory(image, imageMemory, 0);
 }
 
-void VulkanContext::loadModel()
+LoadedModel VulkanContext::loadVikingRoom()
 {
-	auto modelFileName = (theRuncfg.texturesDir / "viking_room" / "viking_room.obj").string();
+	auto baseDir = theRuncfg.texturesDir / "viking_room";
+	auto modelFileName = (baseDir / "viking_room.obj").string();
+	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
-	auto loadedModel = modelLoader.Load(modelFileName, "");
+	return modelLoader.Load(modelFileName, mtlDirectory, ModelLoader::LoadSettings{});
+}
+
+LoadedModel VulkanContext::LoadDragon()
+{
+	auto baseDir = theRuncfg.texturesDir / "dragon";
+	auto modelFileName = (baseDir / "dragon.obj").string();
+	auto mtlDirectory = baseDir.string();
+
+	ModelLoader::LoadSettings loadSettings;
+	loadSettings.ignoreMissingUVs = true;
+
+	ModelLoader modelLoader;
+	return modelLoader.Load(modelFileName, mtlDirectory, loadSettings);
+}
+
+void VulkanContext::loadModel()
+{
+	auto loadedModel = LoadDragon();
 
 	// TODO only works with shape 0
 	auto const& shape = loadedModel.shapes[0];
