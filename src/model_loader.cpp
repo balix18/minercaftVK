@@ -18,7 +18,7 @@ std::size_t Vertex::Hasher::operator()(Vertex const& vertex) const noexcept
 	return seed;
 }
 
-LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mtlDirectory, bool flipWinding)
+LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mtlDirectory, LoadSettings const& loadsettings)
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -59,6 +59,8 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 		loadedModel.materials.push_back(std::move(newMaterial));
 	}
 
+	bool isMissingUVs = attrib.texcoords.size() == 0;
+
 	for (auto const& shape : shapes)
 	{
 		TinyObjShape newShape;
@@ -74,10 +76,12 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 				attrib.vertices[3 * index.vertex_index + 2]
 			};
 
-			vertex.texCoord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
+			if (!isMissingUVs || !loadsettings.ignoreMissingUVs) {
+				vertex.texCoord = {
+					attrib.texcoords[2 * index.texcoord_index + 0],
+					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+				};
+			}
 
 			vertex.color = { 1.0f, 1.0f, 1.0f };
 
@@ -89,7 +93,7 @@ LoadedModel ModelLoader::Load(std::string const& fileName, std::string const& mt
 			newShape.indices.push_back(uniqueVertices[vertex]);
 		}
 
-		if (flipWinding) {
+		if (loadsettings.flipWinding) {
 			if (newShape.indices.size() % 3 != 0) throw std::runtime_error("index count not matching");
 
 			for (int i = 0; i < newShape.indices.size(); i += 3) {

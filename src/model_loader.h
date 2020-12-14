@@ -40,7 +40,13 @@ struct LoadedModel
 
 struct ModelLoader
 {
-	LoadedModel Load(std::string const& fileName, std::string const& mtlDirectory, bool flipWinding = false);
+	struct LoadSettings
+	{
+		bool flipWinding = false;
+		bool ignoreMissingUVs = false;
+	};
+
+	LoadedModel Load(std::string const& fileName, std::string const& mtlDirectory, LoadSettings const& loadsettings);
 	void CheckMaterialIds(std::vector<tinyobj::shape_t> const& shapes);
 	void LoadMaterialTextures(std::vector<TinyObjMaterial> const& materials);
 	std::string HandleDefaultTexure(fs::path const& path);

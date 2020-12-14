@@ -87,7 +87,7 @@ LoadedModel SimpleScene::LoadVikingRoom()
 	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
-	return modelLoader.Load(modelFileName, mtlDirectory);
+	return modelLoader.Load(modelFileName, mtlDirectory, ModelLoader::LoadSettings{});
 }
 
 LoadedModel SimpleScene::LoadErato()
@@ -97,7 +97,7 @@ LoadedModel SimpleScene::LoadErato()
 	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
-	return modelLoader.Load(modelFileName, mtlDirectory);
+	return modelLoader.Load(modelFileName, mtlDirectory, ModelLoader::LoadSettings{});
 }
 
 LoadedModel SimpleScene::LoadSponza()
@@ -107,5 +107,5 @@ LoadedModel SimpleScene::LoadSponza()
 	auto mtlDirectory = baseDir.string();
 
 	ModelLoader modelLoader;
-	return modelLoader.Load(modelFileName, mtlDirectory);
+	return modelLoader.Load(modelFileName, mtlDirectory, ModelLoader::LoadSettings{});
 }
