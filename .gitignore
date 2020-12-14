@@ -5,3 +5,6 @@ CMakeSettings.json
 
 shaders/*.spv
 textures/*
+
+*.pdf
+*.mp4
